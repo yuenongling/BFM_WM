@@ -1,0 +1,533 @@
+"""
+Data handling functionality for wall models
+"""
+import numpy as np
+import torch
+import pickle as pkl
+from typing import Dict, Tuple, List, Optional, Union
+import os
+from scipy.io import loadmat
+import sys
+import pandas as pd
+
+# Add parent directory to path to import wall_model_cases
+sys.path.insert(0, os.path.abspath('..'))
+from wall_model_cases import INPUT_TURB_FILES, TURB_CASES, DATASET_PLOT_TITLE
+
+class WallModelDataHandler:
+    """
+    Handles data loading, preprocessing, and partitioning for wall models
+    """
+    
+    def __init__(self, config: Dict):
+        """Initialize with configuration"""
+        self.config = config
+        self.device = torch.device(f"cuda:{config.get('general', {}).get('GpuNum', -1)}"
+                                  if torch.cuda.is_available() else 'cpu')
+        
+        # Data containers
+        self.input = None
+        self.output = None
+        self.flow_type = None
+        self.input_dim = None
+        
+        # Preprocessing
+        self.input_mean = None
+        self.input_std = None
+        
+        # Data splits
+        self.train_index = None
+        self.valid_index = None
+        self.input_train = None
+        self.output_train = None
+        self.input_valid = None
+        self.output_valid = None
+        
+    def read_data(self, data_sources: Optional[Dict] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Read data from specified sources
+        
+        Args:
+            data_sources: Optional dictionary specifying data sources, if None uses config
+        
+        Returns:
+            Tuple of (input, output, flow_type)
+        """
+        # If data_sources not provided, use config
+        if data_sources is None:
+            data_sources = self.config
+        
+        return self._load_from_raw_sources(data_sources)
+    
+    def _load_from_raw_sources(self, data_sources: Dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Load data from raw sources based on configuration
+        
+        Args:
+            data_sources: Dictionary with dataset configuration
+            
+        Returns:
+            Tuple of (input, output, flow_type)
+        """
+        # Get data configuration
+        data_config = data_sources.get('data', {})
+        
+        # Get list of datasets to use
+        datasets = []
+        
+        # Check for channel flow data
+        if data_config.get('CH', 0) == 1:
+            datasets.append('CH')
+        
+        # Check for synthetic data
+        if data_config.get('SYN', 0) == 1:
+            datasets.append('SYN')
+        
+        # Check for Gaussian data
+        if data_config.get('gaussian_2M', 0) == 1:
+            datasets.append('gaussian_2M')
+        
+        # Check for TBL data with specific angles
+        tbl_angles = data_config.get('TBL', [])
+        if isinstance(tbl_angles, list) and tbl_angles:
+            for angle in tbl_angles:
+                datasets.append(f'TBL_{angle}')
+        elif data_config.get('TBL', 0) == 1:
+            # Add all TBL datasets if just marked as 1
+            for case in TURB_CASES:
+                if 'TBL_' in case:
+                    datasets.append(case)
+        
+        # Check for bubble data
+        if data_config.get('BUB', 0) == 1:
+            for case in TURB_CASES:
+                if 'bub_' in case:
+                    datasets.append(case)
+        
+        # Check for APG data
+        if data_config.get('APG', 0) == 1:
+            for case in TURB_CASES:
+                if 'apg_' in case:
+                    datasets.append(case)
+        
+        # Check for airfoil data
+        if data_config.get('AIRFOIL', 0) == 1:
+            for case in TURB_CASES:
+                if 'naca_' in case or 'aairfoil_' in case:
+                    datasets.append(case)
+        
+        # If no datasets specified, use all
+        if not datasets:
+            print("Warning: No specific datasets configured, using all available")
+            datasets = TURB_CASES
+        
+        # Load each dataset
+        all_inputs = []
+        all_outputs = []
+        all_flow_types = []
+        
+        # Get input scaling from configuration
+        input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
+        print(f"Using input scaling mode: {input_scaling}")
+        
+        for dataset in datasets:
+            if dataset in INPUT_TURB_FILES:
+                file_path = INPUT_TURB_FILES[dataset]
+       # (Inside the loop iterating through datasets)
+            # --- CONSTRUCT HDF5 PATH ---
+                h5_file_path = None
+                if dataset in INPUT_TURB_FILES:
+                    # Construct potential HDF5 file path from INPUT_TURB_FILES (.pkl path)
+                    base_path = INPUT_TURB_FILES[dataset]
+                    h5_file_path = base_path.replace(".pkl", ".h5")
+                else:
+                    # Handle datasets not listed in INPUT_TURB_FILES if necessary.
+                    # Example: Construct path directly assumes './data/DATASET_data.h5'
+                    # h5_file_path = os.path.join('./data', f'{dataset}_data.h5') # Adjust logic as needed
+                    raise ValueError(f"Dataset {dataset} not found in INPUT_TURB_FILES mapping.")
+                    # If direct path construction not implemented, set h5_file_path to None or skip
+
+                # --- READ HDF5 FILE ---
+                if h5_file_path and os.path.exists(h5_file_path):
+                    print(f"Reading HDF5 file: {h5_file_path}")
+                    try:
+                        inputs_df = pd.read_hdf(h5_file_path, key='inputs')
+                        outputs_series = pd.read_hdf(h5_file_path, key='output').iloc[:, 0] # Ensure it's a Series
+                        flow_type_df = pd.read_hdf(h5_file_path, key='flow_type')
+                        unnormalized_inputs_df = pd.read_hdf(h5_file_path, key='unnormalized_inputs')
+                        print(f"  Loaded keys: inputs, output, flow_type, unnormalized_inputs")
+
+                        # Keep data as DataFrames for filtering and selection
+                        all_data_inputs_df = inputs_df
+                        outputs_for_processing = outputs_series
+                        flow_type_for_processing = flow_type_df
+                        unnormalized_for_filter = unnormalized_inputs_df
+
+                    except Exception as e:
+                        print(f"Error reading HDF5 file {h5_file_path} for dataset {dataset}: {e}")
+                        continue # Skip this dataset if HDF5 reading fails
+                else:
+                    print(f"Warning: HDF5 file not found for dataset {dataset}. Expected path: {h5_file_path}. Skipping dataset.")
+                    continue # Skip this dataset if HDF5 file doesn't exist
+
+                # --- Filtering (using DataFrames) ---
+                upy_max = data_config.get('upy', 1.0)
+                if upy_max < 1.0:
+                    # (Filtering logic using DataFrames remains the same as previous version)
+                    print(f"Filtering {dataset} with upy_max={upy_max}...")
+                    if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
+                        y_vals = unnormalized_for_filter['y'].values
+                        delta_vals = flow_type_for_processing['delta'].astype(float).values
+                        mask = y_vals <= upy_max * delta_vals
+                        all_data_inputs_df = all_data_inputs_df[mask]
+                        outputs_for_processing = outputs_for_processing[mask]
+                        flow_type_for_processing = flow_type_for_processing[mask]
+                        print(f"  Filtered dataset {dataset}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
+                    else:
+                        print(f"  Warning: Cannot filter by 'upy'. Missing 'y' in unnormalized or 'delta' in flow_type.")
+
+                # --- Column Selection (using DataFrame column names) ---
+                input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
+                column_map = {
+                    1: ['u1_y_over_nu', 'up_y_over_nu'], # MAKE SURE THESE MATCH HDF5 COLUMNS
+                    2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
+                    3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
+                    4: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu', 'u4_y_over_nu'],
+                    5: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu'],
+                    6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu', 'dudy2_y_pow2_over_nu'],
+                    7: ['u1_y_over_nu', 'up_y_over_nu', 'dudy1_y_pow2_over_nu'],
+                }
+                selected_columns = column_map.get(input_scaling, column_map[1])
+
+                available_cols = all_data_inputs_df.columns
+                valid_selection = all(col in available_cols for col in selected_columns)
+
+                if valid_selection:
+                    inputs_selected_df = all_data_inputs_df[selected_columns]
+                else:
+                    print(f"Warning: Dataset {dataset} (HDF5 source) is missing required columns for input_scaling={input_scaling}. Required: {selected_columns}. Available: {list(available_cols)}. Skipping dataset.")
+                    continue
+
+                # --- Convert final selections to NumPy for concatenation ---
+                inputs_np = inputs_selected_df.values
+                outputs_np = outputs_for_processing.values
+                flow_type_np = flow_type_for_processing.values
+
+                all_inputs.append(inputs_np)
+                all_outputs.append(outputs_np)
+                all_flow_types.append(flow_type_np)
+
+                print(f"  Processed {len(inputs_np)} samples from {dataset} with {inputs_np.shape[1]} input dimensions (Scaling Mode: {input_scaling})") 
+
+        # Combine all datasets
+        if all_inputs:
+            combined_inputs = np.vstack(all_inputs)
+            combined_outputs = np.concatenate(all_outputs)
+            combined_flow_types = np.vstack(all_flow_types)
+            
+            # Store in class attributes
+            self.input = combined_inputs
+            self.output = combined_outputs
+            self.flow_type = combined_flow_types
+            self.input_dim = combined_inputs.shape[1]
+            
+            print(50 * '-')
+            print(f"Combined dataset has {len(combined_inputs)} samples with {self.input_dim} input dimensions")
+            
+            return combined_inputs, combined_outputs, combined_flow_types
+        else:
+            raise ValueError("No data was loaded. Check dataset configuration and file paths.")
+    
+    def preprocess_data(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Preprocess data (standardization, etc.)
+        
+        Returns:
+            Tuple of (preprocessed_input, output)
+        """
+        if self.input is None or self.output is None:
+            raise ValueError("Data not loaded. Call read_data first.")
+        
+        # Standardize inputs
+        self.input_mean = np.mean(self.input, axis=0)
+        self.input_std = np.std(self.input, axis=0)
+        
+        # Replace zero standard deviations to avoid division by zero
+        self.input_std[self.input_std == 0] = 1.0
+        
+        # Standardize
+        preprocessed_input = (self.input - self.input_mean) / self.input_std
+        
+        return preprocessed_input, self.output
+    
+    def split_data(self, train_ratio: float = 0.8, random_split: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Split data into training and validation sets
+        
+        Args:
+            train_ratio: Ratio of training data
+            random_split: Whether to split randomly or sequentially
+        
+        Returns:
+            Tuple of (input_train, output_train, input_valid, output_valid)
+        """
+        if self.input is None or self.output is None:
+            raise ValueError("Data not loaded. Call read_data first.")
+        
+        n_samples = len(self.input)
+        n_train = int(train_ratio * n_samples)
+        
+        if random_split:
+            # Random split
+            indices = np.random.permutation(n_samples)
+            self.train_index = indices[:n_train]
+            self.valid_index = indices[n_train:]
+        else:
+            # Sequential split
+            self.train_index = np.arange(n_train)
+            self.valid_index = np.arange(n_train, n_samples)
+        
+        # Get train and validation data
+        self.input_train = self.input[self.train_index]
+        self.output_train = self.output[self.train_index]
+        self.input_valid = self.input[self.valid_index]
+        self.output_valid = self.output[self.valid_index]
+        
+        print(50 * '-')
+        print(f"Split data into {len(self.input_train)} training and {len(self.input_valid)} validation samples")
+        print(50 * '-')
+        
+        return self.input_train, self.output_train, self.input_valid, self.output_valid
+    
+    def convert_to_tensors(self, device: Optional[torch.device] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Convert data to PyTorch tensors
+        
+        Args:
+            device: Device to place tensors on
+        
+        Returns:
+            Tuple of (input_train, output_train, input_valid, output_valid) as tensors
+        """
+        if self.input_train is None or self.output_train is None:
+            raise ValueError("Data not split. Call split_data first.")
+        
+        if device is None:
+            device = self.device
+        
+        # Convert to tensors
+        input_train_tensor = torch.from_numpy(self.input_train).float().to(device)
+        output_train_tensor = torch.from_numpy(self.output_train).float().to(device)
+        input_valid_tensor = torch.from_numpy(self.input_valid).float().to(device)
+        output_valid_tensor = torch.from_numpy(self.output_valid).float().to(device)
+        
+        # Update class attributes
+        self.input_train = input_train_tensor
+        self.output_train = output_train_tensor
+        self.input_valid = input_valid_tensor
+        self.output_valid = output_valid_tensor
+        
+        return input_train_tensor, output_train_tensor, input_valid_tensor, output_valid_tensor
+    
+    def save_preprocessed_data(self, path: str) -> None:
+        """
+        Save preprocessed data to file
+        
+        Args:
+            path: Path to save the data
+        """
+        if self.input is None or self.output is None:
+            raise ValueError("Data not loaded. Call read_data first.")
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Save data
+        with open(path, 'wb') as f:
+            pkl.dump({
+                'inputs': self.input,
+                'outputs': self.output,
+                'flow_type': self.flow_type,
+                'input_mean': self.input_mean,
+                'input_std': self.input_std
+            }, f)
+        
+        print(f"Saved preprocessed data to {path}")
+    
+    def load_external_dataset(self, dataset_key: str, config: Optional[Dict] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Load a specific external dataset for testing
+        
+        Args:
+            dataset_key: Key identifying the dataset to load
+            config: Optional configuration to use (if None, uses the current config)
+            
+        Returns:
+            Tuple of (inputs, outputs, unnormalized_inputs, flow_type)
+        """
+        if config is None:
+            config = self.config
+            
+        # Get input scaling from configuration
+        input_scaling = config.get('model', {}).get('inputs', {}).get('InputScaling', 1)
+        
+        # Try direct path first
+        file_path = f'./data/{dataset_key}_data.h5'
+        
+        if not os.path.exists(file_path):
+            # Try alternative paths
+            if dataset_key in INPUT_TURB_FILES:
+                file_path = INPUT_TURB_FILES[dataset_key].replace('.pkl', '.h5')
+            elif dataset_key.isdigit() or (dataset_key.startswith('-') and dataset_key[1:].isdigit()):
+                file_path = INPUT_TURB_FILES.get(f'TBL_{dataset_key}', '').replace('.pkl', '.h5')
+            elif dataset_key.isdigit():
+                file_path = INPUT_TURB_FILES.get(f'naca_4412_{dataset_key}', '').replace('.pkl', '.h5')
+            else:
+                for key, path in INPUT_TURB_FILES.items():
+                    if dataset_key in key:
+                        file_path = path.replace('.pkl', '.h5')
+                        break
+        
+        if not os.path.exists(file_path):
+            raise ValueError(f"Dataset {dataset_key} not found or file doesn't exist. Tried path: {file_path}")
+        
+        try:
+            import pandas as pd
+            
+            # Read each component from HDF5
+            inputs_df = pd.read_hdf(file_path, key='inputs')
+            outputs = pd.read_hdf(file_path, key='output').values
+            unnormalized_inputs = pd.read_hdf(file_path, key='unnormalized_inputs').values
+            flow_type = pd.read_hdf(file_path, key='flow_type').values
+            
+            # Apply optional filtering based on config
+            upy_max = config.get('data', {}).get('upy', 1.0)  # Upper y value for input
+            
+            # Filter based on upy if needed
+            if upy_max < 1.0:
+                # First column of unnormalized_inputs contains y values relative to delta
+                y = unnormalized_inputs[:, 0]
+                delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
+                
+                # Filter out points where y exceeds upy_max * delta
+                mask = y <= upy_max * delta
+                
+                # Apply mask to all data arrays
+                inputs_df = inputs_df[mask]
+                outputs = outputs[mask]
+                unnormalized_inputs = unnormalized_inputs[mask]
+                flow_type = flow_type[mask]
+                
+                print(50 * '-')
+                print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points using up_y={upy_max}")
+            
+            # Select input columns based on input_scaling
+            column_map = {
+                1: ['u1_y_over_nu', 'up_y_over_nu'],
+                2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
+                3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
+                4: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu', 'u4_y_over_nu'],
+                5: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu'],
+                6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu', 'dudy2_y_pow2_over_nu'],
+                7: ['u1_y_over_nu', 'up_y_over_nu', 'dudy1_y_pow2_over_nu'],
+            }
+            
+            selected_columns = column_map.get(input_scaling, column_map[1])
+            
+            # Verify all required columns exist
+            if not all(col in inputs_df.columns for col in selected_columns):
+                print(f"Warning: Not all required columns {selected_columns} found in dataset. Available columns: {inputs_df.columns}")
+                # Default to first two columns if required columns not found
+                inputs = inputs_df.iloc[:, :2].values
+            else:
+                inputs = inputs_df[selected_columns].values
+            
+            print(f"Loaded external dataset {dataset_key} with {len(inputs)} samples, input scaling mode {input_scaling}, input dims {inputs.shape[1]}")
+            return inputs, outputs, unnormalized_inputs, flow_type
+            
+        except Exception as e:
+            raise ValueError(f"Error loading dataset {dataset_key} from {file_path}: {str(e)}")
+    
+    def _prepare_weights_custom(self) -> torch.Tensor:
+        """
+        Prepare customized weights based on flow types
+        
+        Returns:
+            Tensor of weights corresponding to each sample
+        """
+        # Get custom weight power from config
+        custom_weight_power = self.config.get('model', {}).get('weights', {}).get('custom', 0)
+        
+        if custom_weight_power <= 0 or self.flow_type is None:
+            return None
+            
+        # Convert to numpy for easier manipulation
+        flow_types_np = self.flow_type
+        if isinstance(flow_types_np, torch.Tensor):
+            flow_types_np = flow_types_np.cpu().numpy()
+            
+        if len(flow_types_np.shape) > 1:
+            flow_types_np = flow_types_np[:, 0]  # Extract first column if multidimensional
+            
+        # Count occurrences of each flow type
+        unique_flow_types = np.unique(flow_types_np)
+        count_per_flow_type = {}
+        weight_per_flow_type = {}
+        min_weight = float('inf')
+        
+        # Calculate base weights (inverse frequency)
+        for flow_type in unique_flow_types:
+            count = np.sum(flow_types_np == flow_type)
+            count_per_flow_type[flow_type] = count
+            # Base weight is inverse frequency
+            weight = len(flow_types_np) / count
+            weight_per_flow_type[flow_type] = weight
+            min_weight = min(min_weight, weight)
+        
+        # Normalize weights by minimum weight and apply power
+        for flow_type in unique_flow_types:
+            normalized_weight = weight_per_flow_type[flow_type] / min_weight
+            # Apply power based on config setting
+            weight_per_flow_type[flow_type] = normalized_weight ** int(custom_weight_power)
+        
+        # Log information about flow types and weights
+        for flow_type in unique_flow_types:
+            print(f"Flow type: {flow_type}, count: {count_per_flow_type[flow_type]}, "
+                  f"weight: {weight_per_flow_type[flow_type]}")
+        
+        # Create weight tensor matching original data order
+        weights = torch.tensor([weight_per_flow_type[ft] for ft in flow_types_np], 
+                              dtype=torch.float32)
+        
+        # If a device is defined, move tensor to that device
+        if hasattr(self, 'device'):
+            weights = weights.to(self.device)
+        
+        return weights
+    
+    @classmethod
+    def load_preprocessed_data(cls, path: str, config: Dict) -> 'WallModelDataHandler':
+        """
+        Load preprocessed data from file
+        
+        Args:
+            path: Path to load the data from
+            config: Configuration dictionary
+        
+        Returns:
+            WallModelDataHandler instance with loaded data
+        """
+        instance = cls(config)
+        
+        with open(path, 'rb') as f:
+            data = pkl.load(f)
+            instance.input = data['inputs']
+            instance.output = data['outputs']
+            instance.flow_type = data['flow_type']
+            instance.input_mean = data.get('input_mean')
+            instance.input_std = data.get('input_std')
+        
+        instance.input_dim = instance.input.shape[1]
+        
+        print(f"Loaded preprocessed data from {path} with {len(instance.input)} samples")
+        return instance

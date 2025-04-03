@@ -1,0 +1,10 @@
+# Directories to ignore in the repository
+configs/
+create_data/
+__pycache__/
+results/
+data/
+wandb/
+old_scripts/
+tests/
+models/
