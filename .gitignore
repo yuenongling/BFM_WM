@@ -1,5 +1,5 @@
 # Directories to ignore in the repository
-configs/
+inputfiles/
 create_data/
 __pycache__/
 results/

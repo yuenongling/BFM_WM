@@ -111,7 +111,9 @@ class WallModel(WallModelBase):
         input_scaling = self.config.get('model', {}).get('inputs', {}).get('InputScaling', 1)
         
         # Determine input dimension based on input_scaling
-        if input_scaling == 1:  # One-point velocity
+        if input_scaling == 0:  # One-point velocity
+            input_dim = 1
+        elif input_scaling == 1:  # One-point velocity
             input_dim = 2
         elif input_scaling == 2:  # Two-points velocity
             input_dim = 3
@@ -128,10 +130,6 @@ class WallModel(WallModelBase):
         else:
             # Use provided or default (2)
             input_dim = self.config.get('model', {}).get('InputDim', 2)
-        
-        # Use the actual input_dim from loaded data if it exists
-        if hasattr(self, 'input_dim') and self.input_dim is not None:
-            input_dim = self.input_dim
         
         print(f"Creating model with input dimension: {input_dim}")
         

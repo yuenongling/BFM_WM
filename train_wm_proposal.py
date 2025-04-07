@@ -4,7 +4,7 @@ import sys
 
 # Get the config file name from command line arguments
 config_file = sys.argv[1]
-config = parsing_wm.parse_toml_config('./configs/' + config_file)
+config = parsing_wm.parse_toml_config('./inputfiles/' + config_file)
 
 # Training and saving routine
 training_instance = WallModel(config)

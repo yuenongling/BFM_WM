@@ -30,13 +30,12 @@ RandomSplitWM = true  # Whether to split data randomly
 
 [model]
 # Model architecture settings
-InputDim = 3          # Number of input dimensions
 HiddenLayers = [30, 30, 30, 40] # List defining the number of neurons in each hidden layer
 OutputDim = 1         # Number of output dimensions
 Activation = "relu"   # Activation function for hidden layers (tanh, ReLU, etc.)
 
 [model.inputs]
-InputScaling = 2      # Scaling method for inputs (1, 2, 3, 4, 5, 6, or 7)
+InputScaling = 0      # Scaling method for inputs (1, 2, 3, 4, 5, 6, or 7)
 
 [model.outputs]
 OutputScaling = 1     # Scaling method for outputs (0 or 1)

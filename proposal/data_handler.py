@@ -189,6 +189,7 @@ class WallModelDataHandler:
                 # --- Column Selection (using DataFrame column names) ---
                 input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
                 column_map = {
+                    0: ['u1_y_over_nu'], # MAKE SURE THESE MATCH HDF5 COLUMNS
                     1: ['u1_y_over_nu', 'up_y_over_nu'], # MAKE SURE THESE MATCH HDF5 COLUMNS
                     2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
                     3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
@@ -328,31 +329,6 @@ class WallModelDataHandler:
         self.output_valid = output_valid_tensor
         
         return input_train_tensor, output_train_tensor, input_valid_tensor, output_valid_tensor
-    
-    def save_preprocessed_data(self, path: str) -> None:
-        """
-        Save preprocessed data to file
-        
-        Args:
-            path: Path to save the data
-        """
-        if self.input is None or self.output is None:
-            raise ValueError("Data not loaded. Call read_data first.")
-        
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        
-        # Save data
-        with open(path, 'wb') as f:
-            pkl.dump({
-                'inputs': self.input,
-                'outputs': self.output,
-                'flow_type': self.flow_type,
-                'input_mean': self.input_mean,
-                'input_std': self.input_std
-            }, f)
-        
-        print(f"Saved preprocessed data to {path}")
     
     def load_external_dataset(self, dataset_key: str, config: Optional[Dict] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
