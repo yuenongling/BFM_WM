@@ -3,7 +3,7 @@ inputfiles/
 create_data/
 __pycache__/
 results/
-data/
+# data/
 wandb/
 old_scripts/
 tests/
