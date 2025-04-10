@@ -71,55 +71,55 @@ class WallModelDataHandler:
         """
         # Get data configuration
         data_config = data_sources.get('data', {})
-        
         # Get list of datasets to use
         datasets = []
         
-        # Check for channel flow data
-        if data_config.get('CH', 0) == 1:
-            datasets.append('CH')
-        
-        # Check for synthetic data
-        if data_config.get('SYN', 0) == 1:
-            datasets.append('SYN')
-        
-        # Check for Gaussian data
-        if data_config.get('gaussian_2M', 0) == 1:
-            datasets.append('gaussian_2M')
-        
-        # Check for TBL data with specific angles
+        # Iterate through data_config to find datasets
+        for key, value in data_config.items():
+            if value == 1:
+                # If value is 1, add the key to datasets
+                datasets.append(key)
+
+        # # Check for channel flow data
+        # if data_config.get('CH', 0) == 1:
+        #     datasets.append('CH')
+        #
+        # # Check for synthetic data
+        # if data_config.get('SYN', 0) == 1:
+        #     datasets.append('SYN')
+        #
+        # # Check for Gaussian data
+        # if data_config.get('gaussian_2M', 0) == 1:
+        #     datasets.append('gaussian_2M')
+        #
+        # # Check for TBL data with specific angles
         tbl_angles = data_config.get('TBL', [])
         if isinstance(tbl_angles, list) and tbl_angles:
             for angle in tbl_angles:
                 datasets.append(f'TBL_{angle}')
-        elif data_config.get('TBL', 0) == 1:
-            # Add all TBL datasets if just marked as 1
-            for case in TURB_CASES:
-                if 'TBL_' in case:
-                    datasets.append(case)
-        
-        # Check for bubble data
-        if data_config.get('BUB', 0) == 1:
-            for case in TURB_CASES:
-                if 'bub_' in case:
-                    datasets.append(case)
-        
-        # Check for APG data
-        if data_config.get('APG', 0) == 1:
-            for case in TURB_CASES:
-                if 'apg_' in case:
-                    datasets.append(case)
-        
-        # Check for airfoil data
-        if data_config.get('AIRFOIL', 0) == 1:
-            for case in TURB_CASES:
-                if 'naca_' in case or 'aairfoil_' in case:
-                    datasets.append(case)
-        
-        # If no datasets specified, use all
-        if not datasets:
-            print("Warning: No specific datasets configured, using all available")
-            datasets = TURB_CASES
+        #
+        # # Check for bubble data
+        # if data_config.get('BUB', 0) == 1:
+        #     for case in TURB_CASES:
+        #         if 'bub_' in case:
+        #             datasets.append(case)
+        #
+        # # Check for APG data
+        # if data_config.get('APG', 0) == 1:
+        #     for case in TURB_CASES:
+        #         if 'apg_' in case:
+        #             datasets.append(case)
+        #
+        # # Check for airfoil data
+        # if data_config.get('AIRFOIL', 0) == 1:
+        #     for case in TURB_CASES:
+        #         if 'naca_' in case or 'aairfoil_' in case:
+        #             datasets.append(case)
+        #
+        # # If no datasets specified, use all
+        # if not datasets:
+        #     print("Warning: No specific datasets configured, using all available")
+        #     datasets = TURB_CASES
         
         # Load each dataset
         all_inputs = []
@@ -138,8 +138,7 @@ class WallModelDataHandler:
                 h5_file_path = None
                 if dataset in INPUT_TURB_FILES:
                     # Construct potential HDF5 file path from INPUT_TURB_FILES (.pkl path)
-                    base_path = INPUT_TURB_FILES[dataset]
-                    h5_file_path = base_path.replace(".pkl", ".h5")
+                    h5_file_path = INPUT_TURB_FILES[dataset]
                 else:
                     # Handle datasets not listed in INPUT_TURB_FILES if necessary.
                     # Example: Construct path directly assumes './data/DATASET_data.h5'
@@ -189,8 +188,8 @@ class WallModelDataHandler:
                 # --- Column Selection (using DataFrame column names) ---
                 input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
                 column_map = {
-                    0: ['u1_y_over_nu'], # MAKE SURE THESE MATCH HDF5 COLUMNS
-                    1: ['u1_y_over_nu', 'up_y_over_nu'], # MAKE SURE THESE MATCH HDF5 COLUMNS
+                    0: ['u1_y_over_nu'],
+                    1: ['u1_y_over_nu', 'up_y_over_nu'], 
                     2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
                     3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
                     4: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu', 'u4_y_over_nu'],
@@ -216,7 +215,7 @@ class WallModelDataHandler:
 
                 all_inputs.append(inputs_np)
                 all_outputs.append(outputs_np)
-                all_flow_types.append(flow_type_np)
+                all_flow_types.append(np.array([dataset] * len(outputs_np)))  # Store dataset name for each output
 
                 print(f"  Processed {len(inputs_np)} samples from {dataset} with {inputs_np.shape[1]} input dimensions (Scaling Mode: {input_scaling})") 
 
@@ -224,7 +223,7 @@ class WallModelDataHandler:
         if all_inputs:
             combined_inputs = np.vstack(all_inputs)
             combined_outputs = np.concatenate(all_outputs)
-            combined_flow_types = np.vstack(all_flow_types)
+            combined_flow_types = np.array(np.concatenate(all_flow_types), dtype=str)
             
             # Store in class attributes
             self.input = combined_inputs
@@ -235,7 +234,7 @@ class WallModelDataHandler:
             print(50 * '-')
             print(f"Combined dataset has {len(combined_inputs)} samples with {self.input_dim} input dimensions")
             
-            return combined_inputs, combined_outputs, combined_flow_types
+            return combined_inputs, combined_outputs
         else:
             raise ValueError("No data was loaded. Check dataset configuration and file paths.")
     
@@ -399,13 +398,12 @@ class WallModelDataHandler:
             
             # Select input columns based on input_scaling
             column_map = {
+                0: ['u1_y_over_nu'],
                 1: ['u1_y_over_nu', 'up_y_over_nu'],
                 2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
                 3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
-                4: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu', 'u4_y_over_nu'],
-                5: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu'],
-                6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu', 'dudy2_y_pow2_over_nu'],
-                7: ['u1_y_over_nu', 'up_y_over_nu', 'dudy1_y_pow2_over_nu'],
+                4: ['u1_y_over_nu', 'u2_y_over_nu'], 
+                5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
             }
             
             selected_columns = column_map.get(input_scaling, column_map[1])

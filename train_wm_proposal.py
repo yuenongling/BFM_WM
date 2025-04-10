@@ -1,5 +1,5 @@
 import parsing_wm
-from proposal.wall_model import WallModel
+from src.wall_model import WallModel
 import sys
 
 # Get the config file name from command line arguments

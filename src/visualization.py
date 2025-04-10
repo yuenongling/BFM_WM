@@ -515,6 +515,65 @@ class WallModelVisualization:
         Returns:
             Tuple of (max_abs_error, mean_abs_error, std_abs_error, mean_rel_error, std_rel_error)
         """
+        if inputs.shape[1] == 1:
+            inputs = np.hstack((inputs, inputs))
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Calculate tauw predictions
+        nu = unnormalized_inputs[:,2]
+        y  = unnormalized_inputs[:,0]
+        utau = unnormalized_inputs[:,3]
+
+        output_tauw = (output * nu / y)**2
+        # Calculate wall shear stress
+        output_true_tauw = (utau)**2
+
+        # Apply masking if requested
+        if mask_threshold is not None:
+            kept_idx = np.where(np.abs(output_true_tauw) > mask_threshold)
+            other_idx = np.where(np.abs(output_true_tauw) <= mask_threshold)
+            
+            # Plot separation region if needed
+            if len(other_idx[0]) > 0:
+                inputs_sep = inputs[other_idx]
+                output_tauw = output_tauw[other_idx]
+                output_true_tauw = output_true_tauw[other_idx]
+                flow_type_sep = flow_type[other_idx]
+                unnormalized_inputs_sep = unnormalized_inputs[other_idx]
+                
+                # Calculate absolute error for separation region
+                err_abs = np.abs(output_tauw - output_true_tauw).squeeze()
+                
+                # Plot separation region results
+                fig_abs, ax_abs = plt.subplots(figsize=(10, 6))
+                sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, 
+                                       cmap='inferno', s=2.5)
+                plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
+                
+                # Set labels and title
+                ax_abs.set_xlabel(r'$\Pi_1$')
+                ax_abs.set_ylabel(r'$\Pi_2$')
+                if dataset is not None:
+                    ax_abs.set_title(f'{self.dataset_labels.get(dataset, dataset)} using BFM \n (near separation) [Mean error: {np.mean(err_abs):.2e}]')
+                
+                # Save or show plot
+                if save_path is not None:
+                    case_name = dataset.replace("-", "")
+                    fig_abs.savefig(f"{save_path}/{case_name}_bfm_abs.pdf", dpi=300)
+                    fig_abs.savefig(f"{save_path}/{case_name}_bfm_abs.png", dpi=300)
+                    plt.close(fig_abs)
+                else:
+                    fig_abs.show()
+            
+            # Keep non-separation indices
+            inputs = inputs[kept_idx]
+            output = output[kept_idx]
+            output_true = output_true[kept_idx]
+            flow_type = flow_type[kept_idx]
+            unnormalized_inputs = unnormalized_inputs[kept_idx]
+
         # Create figure
         fig, ax = plt.subplots(figsize=(10, 6))
         
@@ -552,39 +611,40 @@ class WallModelVisualization:
         axins.patch.set_facecolor('white')
         axins.patch.set_alpha(0.9)
         
-        # Plot histogram
-        sorted_err = np.sort(err)
-        counts, bins, _ = axins.hist(sorted_err, bins=50, color=purple, 
-                                    weights=np.zeros_like(sorted_err) + 100. / sorted_err.size, 
-                                    range=(0, 100))
-        
-        # Set histogram properties
-        axins.set_xticks(np.linspace(0, 100, 11))
-        axins.set_xlim(0, 100)
-        max_count = np.ceil(max(counts))
-        axins.set_yticks(np.linspace(0, max_count, 6))
-        
-        # Calculate statistics
-        n_outside = np.sum(err > 100)
-        outside_percent = n_outside / len(err) * 100
-        below_10_percent = np.mean(err <= 10) * 100
-        
-        # Add annotations
-        if outside_percent > 0:
-            axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
-                      transform=axins.transAxes, fontsize=8, fontweight='bold',
-                      bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
-        
-        axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
-        axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
-                  fontsize=7, fontweight='bold',
-                  bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
-        
-        # Set labels and title
-        ax.set_xlabel(r'$\Pi_1$')
-        ax.set_ylabel(r'$\Pi_2$')
-        if dataset is not None:
-            ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
+        if err is not None and len(err) > 0:
+            # Plot histogram
+            sorted_err = np.sort(err)
+            counts, bins, _ = axins.hist(sorted_err, bins=50, color=purple, 
+                                        weights=np.zeros_like(sorted_err) + 100. / sorted_err.size, 
+                                        range=(0, 100))
+            
+            # Set histogram properties
+            axins.set_xticks(np.linspace(0, 100, 11))
+            axins.set_xlim(0, 100)
+            max_count = np.ceil(max(counts))
+            axins.set_yticks(np.linspace(0, max_count, 6))
+            
+            # Calculate statistics
+            n_outside = np.sum(err > 100)
+            outside_percent = n_outside / len(err) * 100
+            below_10_percent = np.mean(err <= 10) * 100
+            
+            # Add annotations
+            if outside_percent > 0:
+                axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
+                        transform=axins.transAxes, fontsize=8, fontweight='bold',
+                        bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
+            
+            axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
+            axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
+                    fontsize=7, fontweight='bold',
+                    bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
+            
+            # Set labels and title
+            ax.set_xlabel(r'$\Pi_1$')
+            ax.set_ylabel(r'$\Pi_2$')
+            if dataset is not None:
+                ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
         
         # Save or show plot
         if save_path is not None:
@@ -631,6 +691,9 @@ class WallModelVisualization:
         Returns:
             Tuple of (mean_abs_error, std_abs_error, mean_rel_error, std_rel_error)
         """
+        if inputs.shape[1] == 1:
+            inputs = np.hstack((inputs, inputs))
+
         # Create figure
         fig, ax = plt.subplots(figsize=(10, 6))
         
@@ -690,53 +753,54 @@ class WallModelVisualization:
         # Calculate relative error
         err = np.abs((output_log - output_true_tauw) * 100 / output_true_tauw).squeeze()
         
-        # Plot scatter
-        sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5, 
-                       norm=matplotlib.colors.LogNorm(vmin=0.1, vmax=100))
-        plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
-        
-        # Create histogram inset
-        axins = inset_axes(ax, width="80%", height="70%", 
-                          bbox_to_anchor=bin_loc,
-                          bbox_transform=ax.transAxes)
-        
-        # Add semi-opaque background
-        axins.patch.set_facecolor('white')
-        axins.patch.set_alpha(0.9)
-        
-        # Plot histogram
-        sorted_err = np.sort(err)
-        counts, bins, _ = axins.hist(sorted_err, bins=50, color=purple, 
-                                    weights=np.zeros_like(sorted_err) + 100. / sorted_err.size, 
-                                    range=(0, 100))
-        
-        # Set histogram properties
-        axins.set_xticks(np.linspace(0, 100, 11))
-        axins.set_xlim(0, 100)
-        max_count = np.ceil(max(counts))
-        axins.set_yticks(np.linspace(0, max_count, 6))
-        
-        # Calculate statistics
-        n_outside = np.sum(err > 100)
-        outside_percent = n_outside / len(err) * 100
-        below_10_percent = np.mean(err <= 10) * 100
-        
-        # Add annotations
-        if outside_percent > 0:
-            axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
-                      transform=axins.transAxes, fontsize=8, fontweight='bold',
-                      bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
-        
-        axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
-        axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
-                  fontsize=7, fontweight='bold',
-                  bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
-        
-        # Set labels and title
-        ax.set_xlabel(r'$\Pi_1$')
-        ax.set_ylabel(r'$\Pi_2$')
-        if dataset is not None:
-            ax.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law')
+        if err is not None and len(err) > 0:
+            # Plot scatter
+            sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5, 
+                        norm=matplotlib.colors.LogNorm(vmin=0.1, vmax=100))
+            plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
+            
+            # Create histogram inset
+            axins = inset_axes(ax, width="80%", height="70%", 
+                            bbox_to_anchor=bin_loc,
+                            bbox_transform=ax.transAxes)
+            
+            # Add semi-opaque background
+            axins.patch.set_facecolor('white')
+            axins.patch.set_alpha(0.9)
+            
+            # Plot histogram
+            sorted_err = np.sort(err)
+            counts, bins, _ = axins.hist(sorted_err, bins=50, color=purple, 
+                                        weights=np.zeros_like(sorted_err) + 100. / sorted_err.size, 
+                                        range=(0, 100))
+            
+            # Set histogram properties
+            axins.set_xticks(np.linspace(0, 100, 11))
+            axins.set_xlim(0, 100)
+            max_count = np.ceil(max(counts))
+            axins.set_yticks(np.linspace(0, max_count, 6))
+            
+            # Calculate statistics
+            n_outside = np.sum(err > 100)
+            outside_percent = n_outside / len(err) * 100
+            below_10_percent = np.mean(err <= 10) * 100
+            
+            # Add annotations
+            if outside_percent > 0:
+                axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
+                        transform=axins.transAxes, fontsize=8, fontweight='bold',
+                        bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
+            
+            axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
+            axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
+                    fontsize=7, fontweight='bold',
+                    bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
+            
+            # Set labels and title
+            ax.set_xlabel(r'$\Pi_1$')
+            ax.set_ylabel(r'$\Pi_2$')
+            if dataset is not None:
+                ax.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law')
         
         # Save or show plot
         if save_path is not None:
@@ -831,6 +895,7 @@ class WallModelVisualization:
         ax.plot(x_unique, err_log, '-o', color='green', label='Log Law')
         ax.plot(x_unique, err_pred, '-o', color='blue', label='Model')
         ax.legend()
+
         
         # Set labels and title
         if abs_err:

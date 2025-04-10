@@ -3,16 +3,17 @@ TURB_CASES = [
               # High Reynolds number ZPG cases
               'CH', 'SYN', 'PIPE',
               # TBL cases
-              'apg', 'bub', 'TBL',
-              'naca_0012', 'naca_0025', 'naca_4412', 'aairfoil'
-              'apg_kth', 'gaussian_2M', 'curve']
+              'naca_0012', 'naca_0025',
+              'backstep', 'ph_B', 'bend', 'convdiv', 'hump']
 
 # NOTE: File extension for the input files
 EXT = 'h5'
 
 # NOTE: TBL has different ramp angles; will be updated by TBL
 INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in TURB_CASES]))
-DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic', 'Pipe', 'APG', 'Bub', 'TBL', 'NACA0012 Re=400K', 'NACA4412', 'NACA0025', 'NACA4412', 'Aairfoil', 'APG_KTH', 'Gaussian 2M', 'Curve']))
+DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data', 'Pipe', 'NACA0012 Re=400K', 'NACA0025', 
+                                        '2D Backward Step (Driver et al. 1985)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
+                                        'NASA Hump (Uzun et al. 2017)']))
 
 # NOTE: Our TBL data
 TBL_ANGLES = [-4,-3,-2,-1,5,10,15,20]
@@ -20,6 +21,7 @@ for angle in TBL_ANGLES:
     INPUT_TURB_FILES[f'TBL_{angle}'] = f'./data/TBL_{angle}_data.{EXT}'
     TURB_CASES.append(f'TBL_{angle}')
     DATASET_PLOT_TITLE[f'{angle}'] = f'Turbulent Boundary Layer, Ramp Angle: {angle}°'
+    DATASET_PLOT_TITLE[f'TBL_{angle}'] = f'Turbulent Boundary Layer, Ramp Angle: {angle}°'
 # NOTE: APG data 
 SUBCASES = ['b1n', 'b2n', 'm13n', 'm16n', 'm18n']
 for subcase in SUBCASES:
@@ -62,7 +64,7 @@ DATASET_PLOT_TITLE[f'naca_0025'] = f'NACA0025'
 # NOTE: Falkner-Skan laminar boundary layer
 LBL_CASES = ['ZPG','FPG','APG']
 for case in LBL_CASES:
-    INPUT_TURB_FILES[f'FS_{case}'] = f'./data/falkner_skan_data_{case}.{EXT}'
+    INPUT_TURB_FILES[f'FS_{case}'] = f'./data/FS_{case}_data.{EXT}'
     TURB_CASES.append(f'FS_{case}')
     DATASET_PLOT_TITLE[f'FS_{case}'] = f'Laminar Boundary Layer: {case}'
 
@@ -148,6 +150,33 @@ TURB_CASES_TREE = {
     "FS_ZPG": {},
     "FS_FPG": {},
     "FS_APG": {},
-    "curve_pg": {}
+    "curve_pg": {},
+    "bend": {},
+    "convdiv": {},
+    "backstep": {},
+    "ph_B": {},
 }
 
+#################
+# NOTE: Here we also define whether for each cases, we have extra cases focusing on certain cases
+#
+STATION = {
+        "bend": [-0.193, 0.02499936, 0.17799969, 0.3300006 , 0.48299949, 0.9400002 , 1.245], # The station right after 30 degree bend
+        "convdiv": [0, 2.0203, 4.0488, 6.00687, 8.05638],
+        "backstep": [-4.,  1.,  4.,  6., 10.],
+        # "gaussian_2M": [-0.4, -0.2, -0.15, -0.1, 0, 0.05, 0.10],
+        "gaussian_2M_MAPG": [-0.59959855, -0.40889207],
+        "gaussian_2M_FPG": [-0.2, -0.15, -0.1, ],
+        "gaussian_2M_APG": [2.84180234e-05, 4.99274804e-02],
+        "gaussian_2M_SEP": [0.2, 0.3597485],
+        "hump": [-0.8, -0.4, 0, 0.10116047, 0.14109034,0.75702945,0.90906449,0.9896111],
+        "bub_A": [-5.02708292e+00, -2.99583340e+00, -1.10000038e+00, 3.64971161e-03, 1.01249981e+00, 2.01457977e+00],
+        "bub_B": [-5.05104208, -2.07188034, -1.1984396, 1.0427103, 1.99061966, 3.00625038],
+}
+
+# NOTE: Add subcases for each station
+for case in STATION:
+    for i, station in enumerate(STATION[case]):
+        # TURB_CASES_TREE[case][f'station_{i}'] = {}
+        TURB_CASES.append(f'{case}_station_{i}')
+        DATASET_PLOT_TITLE[f'{case}_station_{i}'] = f'{DATASET_PLOT_TITLE[case]}, Station: {station}'

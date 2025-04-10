@@ -6,8 +6,8 @@ import sys
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from proposal.wall_model import WallModel
-from proposal.baseline_models import LogLawPredictor
+from src.wall_model import WallModel
+from src.baseline_models import LogLawPredictor
 
 def train_new_model():
     """Example of training a new wall model"""

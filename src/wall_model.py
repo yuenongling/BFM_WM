@@ -9,13 +9,15 @@ import pickle as pkl
 from typing import Dict, Optional, Tuple, List, Union, Any
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
+import re
 
 # Import our modules
-from proposal.wall_model_base import WallModelBase
-from proposal.data_handler import WallModelDataHandler
-from proposal.visualization import WallModelVisualization
-from proposal.trainer import WallModelTrainer
-from proposal.baseline_models import LogLawPredictor, WallFunctionPredictor, EqWallModelPredictor
+from src.wall_model_base import WallModelBase
+from src.data_handler import WallModelDataHandler
+from src.visualization import WallModelVisualization
+from src.trainer import WallModelTrainer
+from src.baseline_models import LogLawPredictor, WallFunctionPredictor, EqWallModelPredictor
+from wall_model_cases import STATION
 
 class WallModel(WallModelBase):
     """
@@ -113,19 +115,15 @@ class WallModel(WallModelBase):
         # Determine input dimension based on input_scaling
         if input_scaling == 0:  # One-point velocity
             input_dim = 1
-        elif input_scaling == 1:  # One-point velocity
+        elif input_scaling == 1:  # One-point velocity + up
             input_dim = 2
-        elif input_scaling == 2:  # Two-points velocity
+        elif input_scaling == 2:  # Two-points velocity + up
             input_dim = 3
-        elif input_scaling == 3:  # Three-points velocity
+        elif input_scaling == 3:  # Three-points velocity + up
             input_dim = 4
-        elif input_scaling == 4:  # Four-points velocity
-            input_dim = 5
-        elif input_scaling == 5:  # Two-point velocity and one velocity gradient
-            input_dim = 4
-        elif input_scaling == 6:  # Two-point velocity and one velocity gradient
-            input_dim = 5
-        elif input_scaling == 7:  # One-point velocity and one velocity gradient
+        elif input_scaling == 4:  # Two-points velocity
+            input_dim = 2
+        elif input_scaling == 5:  # Three-point velocity
             input_dim = 3
         else:
             # Use provided or default (2)
@@ -178,13 +176,13 @@ class WallModel(WallModelBase):
     def load_data(self) -> None:
         """Load and preprocess data based on configuration"""
         # Read data
-        self.input, self.output, self.flow_type = self.data_handler.read_data()
+        self.input, self.output = self.data_handler.read_data()
         self.input_dim = self.input.shape[1]
         
         # Store in data handler for consistency
         self.data_handler.input = self.input
         self.data_handler.output = self.output
-        self.data_handler.flow_type = self.flow_type
+        # self.data_handler.flow_type = self.flow_type
         self.data_handler.input_dim = self.input_dim
         
         # Preprocess data
@@ -344,9 +342,34 @@ class WallModel(WallModelBase):
         """
         if self.model is None:
             raise ValueError("Model not trained or loaded")
+
+        # Check whether the data set is station specific
+        # If so, we need to filter the data set to only include the station
+        if 'station' in dataset_key:
+            match = re.search(r'(.+)_station_(\d+)$', dataset_key) # Get the case name and station number
+            if match:
+                case = match.group(1) # Get the case name
+                station_num = int(match.group(2)) # Get the station number
+                station_x   = STATION[case][station_num]
+        else:
+            case = dataset_key
         
         # Load and prepare external dataset
-        inputs, outputs, unnormalized_inputs, flow_type = self.data_handler.load_external_dataset(dataset_key)
+        inputs, outputs, unnormalized_inputs, flow_type = self.data_handler.load_external_dataset(case)
+
+        if 'station' in dataset_key:
+            x = flow_type[:, 2] # Get the x-coordinates of the data set
+            x_closest_to_station = np.abs(x - station_x).argmin() # Get the index of the closest x-coordinate to the station
+            if np.abs(x[x_closest_to_station] - station_x) > 1e-3:
+                raise ValueError(f"No data points found for station {station_num} in case {case}. Closest x-coordinate is {x[x_closest_to_station]} compared to {station_x}.")
+            else:
+                idx_closest_to_station = np.where(np.abs(x - x[x_closest_to_station]) < 1e-6)[0] # Get the index of the closest x-coordinate to the station
+                print(idx_closest_to_station)
+                inputs = inputs[idx_closest_to_station]
+                outputs = outputs[idx_closest_to_station]
+                unnormalized_inputs = unnormalized_inputs[idx_closest_to_station]
+                flow_type = flow_type[idx_closest_to_station]
+
 
         # Flatten outputs for consistency
         outputs = outputs.flatten()

@@ -7,7 +7,7 @@ import time
 from typing import Dict, List, Optional, Tuple, Union, Callable
 import wandb
 import glob  # Import the glob module
-from proposal.loss import weighted_mse_loss
+from src.loss import weighted_mse_loss
 
 class WallModelTrainer:
     """
@@ -87,11 +87,12 @@ class WallModelTrainer:
         # Create a meaningful run name if not provided
         if wandb_name is None:
             # Base on model configuration
-            ch_flag = 1 if self.config.get('data', {}).get('CH', 0) > 0 else 0
-            syn_flag = 1 if self.config.get('data', {}).get('SYN', 0) > 0 else 0
-            tbl_flag = 1 if self.config.get('data', {}).get('TBL', 0) > 0 else 0
+            ch_flag  = self._data_flag_check('CH')
+            syn_flag = self._data_flag_check('SYN')
+            tbl_flag = self._data_flag_check('TBL')
+            input_scaling = self.config.get('model', {}).get('inputs', {}).get('InputScaling', 0)
 
-            wandb_name = f"WM_CH{ch_flag}_SYN{syn_flag}_TBL{tbl_flag}"
+            wandb_name = f"WM_CH{ch_flag}_SYN{syn_flag}_TBL{tbl_flag}_InputScaling{input_scaling}"
 
         # Initialize wandb
         wandb.init(project=wandb_project, entity=wandb_entity, name=wandb_name, config=self.config)
@@ -259,27 +260,17 @@ class WallModelTrainer:
         self.weights_valid = None
         
         if self.config.get('model', {}).get('weights', {}).get('custom', 0) > 0:
-            if data_handler is not None and hasattr(data_handler, '_prepare_weights_custom'):
-                # Get the full weights
-                self.weights = data_handler._prepare_weights_custom()
-                
-                if self.weights is not None:
-                    # Split weights into train and validation using data_handler indices
-                    if hasattr(data_handler, 'train_index') and hasattr(data_handler, 'valid_index'):
-                        self.weights_train = self.weights[data_handler.train_index]
-                        self.weights_valid = self.weights[data_handler.valid_index]
-                        print(50 * '=')
-                        print(f"Using custom weights with power {self.config.get('model', {}).get('weights', {}).get('custom')}")
-                        print(f"Split weights: {len(self.weights_train)} training, {len(self.weights_valid)} validation")
-                        print(50 * '=')
-                    else:
-                        # If indices are not available, use the same weights for both (not ideal)
-                        print(50 * '=')
-                        print(f"Warning: Using same weights for training and validation (indices not available)")
-                        print(f"Using custom weights with power {self.config.get('model', {}).get('weights', {}).get('custom')}")
-                        print(50 * '=')
-                        self.weights_train = self.weights
-                        self.weights_valid = self.weights
+            # Get the full weights
+            self.weights = data_handler._prepare_weights_custom()
+            
+            if self.weights is not None:
+                # Split weights into train and validation using data_handler indices
+                self.weights_train = self.weights[data_handler.train_index]
+                self.weights_valid = self.weights[data_handler.valid_index]
+                print(50 * '=')
+                print(f"Using custom weights with power {self.config.get('model', {}).get('weights', {}).get('custom')}")
+                print(f"Split weights: {len(self.weights_train)} training, {len(self.weights_valid)} validation")
+                print(50 * '=')
 
         # Set up loss function
         if loss_fn is None:
@@ -418,14 +409,25 @@ class WallModelTrainer:
 
         return self.model
 
+    def _data_flag_check(self, case_str: str) -> int:
+        """Check if a flag is set and return a string accordingly"""
+        case_specifier =  self.config.get('data', {}).get(case_str, 0)
+
+        if type(case_specifier) == list and len(case_specifier) > 0:
+            return 1
+        elif type(case_specifier) == int and case_specifier > 0:
+            return 1
+        else:
+            return 0
+
     def _generate_model_name_prefix(self) -> str:
         """Generate a descriptive model name prefix based on configuration"""
         # Data sources used
-        ch_flag = 1 if self.config.get('data', {}).get('CH', 0) > 0 else 0
-        syn_flag = 1 if self.config.get('data', {}).get('SYN', 0) > 0 else 0
-        gauss_flag = 1 if self.config.get('data', {}).get('gaussian', 0) > 0 else 0
-        tbl_flag = 1 if self.config.get('data', {}).get('TBL', 0) > 0 else 0
-        bub_flag = 1 if self.config.get('data', {}).get('bub', 0) > 0 else 0
+        ch_flag = self._data_flag_check('CH')
+        syn_flag = self._data_flag_check('SYN')
+        gauss_flag = self._data_flag_check('gaussian')
+        tbl_flag = self._data_flag_check('TBL')
+        bub_flag = self._data_flag_check('bub')
 
         # Preprocessing flags
         fds_flag = 1 if self.config.get('model', {}).get('FDS', {}).get('fds', 0) > 0 else 0
