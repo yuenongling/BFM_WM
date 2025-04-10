@@ -189,13 +189,11 @@ class WallModelDataHandler:
                 input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
                 column_map = {
                     0: ['u1_y_over_nu'],
-                    1: ['u1_y_over_nu', 'up_y_over_nu'], 
+                    1: ['u1_y_over_nu', 'up_y_over_nu'],
                     2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
                     3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
-                    4: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu', 'u4_y_over_nu'],
-                    5: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu'],
-                    6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'dudy1_y_pow2_over_nu', 'dudy2_y_pow2_over_nu'],
-                    7: ['u1_y_over_nu', 'up_y_over_nu', 'dudy1_y_pow2_over_nu'],
+                    4: ['u1_y_over_nu', 'u2_y_over_nu'], 
+                    5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
                 }
                 selected_columns = column_map.get(input_scaling, column_map[1])
 
