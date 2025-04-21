@@ -13,7 +13,7 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
     results = wall_model.test_external_dataset(
         dataset_key=test_dataset,
         tauw=True,
-        mask_threshold=2e-4, 
+        mask_threshold=2e-4,
         save_path=None,
     )
 

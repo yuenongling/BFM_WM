@@ -8,74 +8,17 @@ import numpy as np
 import pandas as pd
 
 training_datasets = ['CH','SYN','TBL_-4','TBL_-3','TBL_-2','TBL_-1','TBL_5','TBL_10','TBL_15','TBL_20', 'gaussian_2M_MAPG','gaussian_2M_FPG','gaussian_2M_APG','gaussian_2M_SEP', 'FS_ZPG','FS_FPG','FS_APG','bub_K']
-test_datasets = ['CH',
- 'SYN',
- 'PIPE',
- 'naca_0012',
- # 'naca_0025',
- # 'naca_4412',
- # 'aairfoilapg_kth',
- # 'gaussian_2M',
- # 'curve',
- 'backstep',
- 'ph_B',
- 'bend',
- 'convdiv',
- 'TBL_-4',
- 'TBL_-3',
- 'TBL_-2',
- 'TBL_-1',
- 'TBL_5',
- 'TBL_10',
- 'TBL_15',
- # 'TBL_20',
- 'apg_b1n',
- 'apg_b2n',
- 'apg_m13n',
- 'apg_m16n',
- 'apg_m18n',
- # 'aairfoil_2M',
- 'aairfoil_10M',
- # 'gaussian_1M',
- # 'gaussian_1M_MAPG',
- # 'gaussian_1M_FPG',
- # 'gaussian_1M_APG',
- # 'gaussian_1M_SEP',
- # 'gaussian_1M_concave',
- # 'gaussian_1M_convex',
- # 'gaussian_1M_FPG_concave',
- # 'gaussian_1M_FPG_convex',
- # 'gaussian_2M',
- 'gaussian_2M_MAPG',
- 'gaussian_2M_FPG',
- 'gaussian_2M_APG',
- 'gaussian_2M_SEP',
- # 'gaussian_2M_concave',
- # 'gaussian_2M_convex',
- # 'gaussian_2M_FPG_concave',
- # 'gaussian_2M_FPG_convex',
- 'bub_A',
- 'bub_B',
- 'bub_C',
- # 'bub_K',
- 'naca_4412_10',
- 'naca_4412_4',
- # 'naca_4412_2',
- # 'naca_4412_1',
- 'FS_ZPG',
- 'FS_FPG',
- 'FS_APG',
- # 'curve_pg']
-]
-
 # # Save testing results to CSV
 # Remove extension from model name
+
 model_name = sys.argv[1] if len(sys.argv) > 1 else None
 df = pd.read_csv(f'./testing_results/renamed/{model_name}.csv')
 
 df['diff'] = df['BFM'] - df['Log law']
 
 df['Training?'] = [dataset in [DATASET_PLOT_TITLE[dataset] for dataset in training_datasets] for dataset in df['Test Case']]
+
+df['abs_error'] = df['abs_error']
 
 
 #########################################
@@ -106,7 +49,8 @@ styled = (
     df.style
     # .apply(highlight_trained, axis=1)
     .apply(highlight_positive_diff, axis=1)
-    .format({'BFM': lambda x: color_bars(x, 100), 'Log law': lambda x: color_bars(x, 100), 'Training?': checkmark})
+    .format({'BFM': lambda x: color_bars(x, 100), 'Log law': lambda x: color_bars(x, 100), 
+             'Training?': checkmark, 'abs_error?': checkmark})
     .set_table_styles([
         {
             'selector': 'th',

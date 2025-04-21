@@ -11,7 +11,7 @@ EXT = 'h5'
 
 # NOTE: TBL has different ramp angles; will be updated by TBL
 INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in TURB_CASES]))
-DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data', 'Pipe', 'NACA0012 Re=400K', 'NACA0025', 
+DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)']))
 
@@ -34,17 +34,28 @@ for re in RE:
     INPUT_TURB_FILES[f'aairfoil_{re}M'] = f'./data/aairfoil_{re}M_data.{EXT}'
     TURB_CASES.append(f'aairfoil_{re}M')
     DATASET_PLOT_TITLE[f'aairfoil_{re}M'] = f'A-Airfoil, Reynolds number: {re}M'
-# NOTE: Gaussian data
-RE = [1, 2]
-POS = ['MAPG', 'FPG', 'APG', 'SEP', 'concave', 'convex', 'FPG_concave', 'FPG_convex']
-for re in RE:
-    INPUT_TURB_FILES[f'gaussian_{re}M'] = f'./data/gaussian_{re}M_data.{EXT}'
-    TURB_CASES.append(f'gaussian_{re}M')
-    DATASET_PLOT_TITLE[f'gaussian_{re}M'] = f'Gaussian Bump: {re}M'
-    for pos in POS:
-        INPUT_TURB_FILES[f'gaussian_{re}M_{pos}'] = f'./data/gaussian_{re}M_data_{pos}.{EXT}'
-        TURB_CASES.append(f'gaussian_{re}M_{pos}')
-        DATASET_PLOT_TITLE[f'gaussian_{re}M_{pos}'] = f'Gaussian Bump: {re}M {pos}'
+
+# NOTE: Gaussian data (2M)
+RE = 2
+POS = ['MAPG', 'FPG', 'APG', 'SEP']
+INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data.{EXT}'
+TURB_CASES.append(f'gaussian_{RE}M')
+DATASET_PLOT_TITLE[f'gaussian_{RE}M'] = f'Gaussian Bump: {RE}M'
+for pos in POS:
+    INPUT_TURB_FILES[f'gaussian_{RE}M_{pos}'] = f'./data/gaussian_{RE}M_data_{pos}.{EXT}'
+    TURB_CASES.append(f'gaussian_{RE}M_{pos}')
+    DATASET_PLOT_TITLE[f'gaussian_{RE}M_{pos}'] = f'Gaussian Bump: {RE}M {pos}'
+# NOTE: Gaussian data (2M)
+RE = 1
+POS = ['MAPG', 'FPG_concave', 'FPG_convex', 'APG_stable', 'APG', 'SEP']
+INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data.{EXT}'
+TURB_CASES.append(f'gaussian_{RE}M')
+DATASET_PLOT_TITLE[f'gaussian_{RE}M'] = f'Gaussian Bump: {RE}M'
+for pos in POS:
+    INPUT_TURB_FILES[f'gaussian_{RE}M_{pos}'] = f'./data/gaussian_{RE}M_data_{pos}.{EXT}'
+    TURB_CASES.append(f'gaussian_{RE}M_{pos}')
+    DATASET_PLOT_TITLE[f'gaussian_{RE}M_{pos}'] = f'Gaussian Bump: {RE}M {pos}'
+
 # NOTE: aairfoil with different Reynolds numbers
 BUB_SUB = ['A', 'B', 'C', 'K']
 for sub in BUB_SUB:
@@ -74,6 +85,13 @@ for case in CURVE_CASES:
     INPUT_TURB_FILES[f'curve_{case}'] = f'./data/curve_{case}_data.{EXT}'
     TURB_CASES.append(f'curve_{case}')
     DATASET_PLOT_TITLE[f'curve_{case}'] = f'Boundary layer with curvature: {case}'
+
+# NOTE: Periodic Hill from Xiao et al. (2020)
+PH_CASES = ['X']
+for case in PH_CASES:
+    INPUT_TURB_FILES[f'ph_{case}'] = f'./data/ph_{case}_data.{EXT}'
+    TURB_CASES.append(f'ph_{case}')
+    DATASET_PLOT_TITLE[f'ph_{case}'] = f'Periodic Hill: {case}'
 
 # NOTE: Reynolds numbers to cover for CH
 RE_NUMS = [550, 950, 2000, 4200]
@@ -162,16 +180,23 @@ TURB_CASES_TREE = {
 #
 STATION = {
         "bend": [-0.193, 0.02499936, 0.17799969, 0.3300006 , 0.48299949, 0.9400002 , 1.245], # The station right after 30 degree bend
-        "convdiv": [0, 2.0203, 4.0488, 6.00687, 8.05638],
+        "convdiv": [0, 2.0203, 4.0488, 8.05638],
         "backstep": [-4.,  1.,  4.,  6., 10.],
-        # "gaussian_2M": [-0.4, -0.2, -0.15, -0.1, 0, 0.05, 0.10],
+        "ph_B": [1.1475, 4.9719, 6.052468, 8.002593, 8.614289],
         "gaussian_2M_MAPG": [-0.59959855, -0.40889207],
         "gaussian_2M_FPG": [-0.2, -0.15, -0.1, ],
         "gaussian_2M_APG": [2.84180234e-05, 4.99274804e-02],
         "gaussian_2M_SEP": [0.2, 0.3597485],
-        "hump": [-0.8, -0.4, 0, 0.10116047, 0.14109034,0.75702945,0.90906449,0.9896111],
+        "gaussian_1M_MAPG": [-0.59999815,-0.40040712],
+        "gaussian_1M_FPG_concave": [-0.22034062, -0.16039],
+        "gaussian_1M_FPG_convex": [-0.10079176,  -0.04998937, -0.00222268],
+        "gaussian_1M_APG_stable": [0.00998682,0.02995354,0.04391049],
+        "gaussian_1M_APG": [0.08037356, 0.10057804,0.17514278],
+        "hump": [-0.8, -0.4, 0, 0.10116047, 0.2014175, 0.30294264, 0.50484454, 0.64700406, 0.79862236, 0.90906449, 1.00000186, 1.2, 1.4],
         "bub_A": [-5.02708292e+00, -2.99583340e+00, -1.10000038e+00, 3.64971161e-03, 1.01249981e+00, 2.01457977e+00],
         "bub_B": [-5.05104208, -2.07188034, -1.1984396, 1.0427103, 1.99061966, 3.00625038],
+        "aairfoil_10M": [0.05 , 0.08 , 0.1  , 0.15 , 0.2  , 0.5  , 0.825, 0.93, 0.99],
+        "aairfoil_2M": [0.1 , 0.15 , 0.3  , 0.5 , 0.825, 0.93, 0.99],
 }
 
 # NOTE: Add subcases for each station

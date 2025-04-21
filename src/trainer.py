@@ -258,6 +258,12 @@ class WallModelTrainer:
         self.weights = None
         self.weights_train = None
         self.weights_valid = None
+
+        # Standardize inputs if scaling is enabled
+        self.input_mean = torch.mean(input_train, dim=0)
+        self.input_std = torch.std(input_train, dim=0)
+        input_train = (input_train - self.input_mean) / self.input_std
+        input_valid = (input_valid - self.input_mean) / self.input_std
         
         if self.config.get('model', {}).get('weights', {}).get('custom', 0) > 0:
             # Get the full weights
@@ -291,7 +297,6 @@ class WallModelTrainer:
         if self.config.get('general', {}).get('Save', False):
             save_models = True
             os.makedirs(save_dir, exist_ok=True)
-
 
             # Create model name prefix if not provided
             if model_name_prefix is None:
@@ -360,6 +365,8 @@ class WallModelTrainer:
                     'epoch': epoch + 1,
                     'train_loss': train_loss,
                     'valid_loss': valid_loss,
+                    'input_mean': self.input_mean.cpu().numpy(),
+                    'input_std': self.input_std.cpu().numpy(),
                     'learning_rate': self.optimizer.param_groups[0]['lr']
                 })
 
@@ -498,10 +505,8 @@ class WallModelTrainer:
             'best_valid_loss': self.best_valid_loss,
 
             # Normalization parameters (essential for inference)
-            'input_mean': getattr(self, 'input_mean', None),  # Use getattr to avoid AttributeError
-            'input_std': getattr(self, 'input_std', None),
-            'output_mean': getattr(self, 'output_mean', None),
-            'output_std': getattr(self, 'output_std', None),
+            'input_mean': self.input_mean,
+            'input_std': self.input_std,
 
             # Configuration and model definition params
             'config': self.config,
