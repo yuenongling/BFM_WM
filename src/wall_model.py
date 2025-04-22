@@ -173,8 +173,13 @@ class WallModel(WallModelBase):
         self.model = nn.Sequential(*layers).to(self.device)
         return self.model
     
-    def load_data(self) -> None:
-        """Load and preprocess data based on configuration"""
+    def load_data(self, exclude=None) -> None:
+        """
+        Load and preprocess data based on configuration
+
+        exclude: Optional list of data types to exclude
+
+        """
         # Read data
         self.input, self.output = self.data_handler.read_data()
         self.input_dim = self.input.shape[1]
@@ -186,11 +191,11 @@ class WallModel(WallModelBase):
         self.data_handler.input_dim = self.input_dim
         
         # Preprocess data
-        self.input, self.output = self.data_handler.preprocess_data()
+        # self.input, self.output = self.data_handler.preprocess_data()
         
         # Update preprocessing parameters
-        self.input_mean = self.data_handler.input_mean
-        self.input_std = self.data_handler.input_std
+        # self.input_mean = self.data_handler.input_mean
+        # self.input_std = self.data_handler.input_std
         
         # Get nested config values properly
         partition_config = self.config.get('data', {}).get('partition', {})
@@ -321,7 +326,8 @@ class WallModel(WallModelBase):
                             weighted_utau: bool = False,
                             abs_err: bool = False,
                             save_path: Optional[str] = None,
-                            compare_with_loglaw: bool = True) -> Dict[str, Any]:
+                            compare_with_loglaw: bool = True,
+                            purpose: int = 0) -> Dict[str, Any]:
         """
         Test the model on an external dataset
         
@@ -336,6 +342,7 @@ class WallModel(WallModelBase):
             abs_err: Whether to use absolute error instead of relative
             save_path: Optional path to save plots
             compare_with_loglaw: Whether to compare with log law baseline
+            purpose: 0 -> testing prediction, 1 -> plot input space
             
         Returns:
             Dictionary of test results
@@ -380,154 +387,261 @@ class WallModel(WallModelBase):
         print(f"outputs: {outputs.shape}")
         print(f"unnormalized_inputs: {unnormalized_inputs.shape}")
         print(f"flow_type: {flow_type.shape}")
+
+        # Do different things based on the purpose
+        if purpose == 1:
+
+            # If the purpose is to visualize the input space, we need to load the data if not already loaded
+            if self.input is None:
+                self.load_data()
+
+            from mpl_toolkits.mplot3d import Axes3D
+            # Create the figure and 3D axes
+            fig = plt.figure(figsize=(10, 8))
+            ax = fig.add_subplot(111, projection='3d')
+
+            # Create the scatter plot
+            cf = 100  # Adjust this factor to control the density of points
+            ax.scatter(self.input[::cf,0],self.input[::cf,1],self.input[::cf,2], s=1, marker='o', rasterized=True)  # s controls the size of the points
+
+            ax.scatter(inputs[:,0], inputs[:,1], inputs[:,2], c='r', s=5, marker='x')  # Highlight the new dataset in red
+
+            # Set labels and title
+            ax.set_xlabel('u1 y / nu')
+            ax.set_ylabel('up y / nu')
+            ax.set_zlabel('u2 y / nu')
+
+            ax.set_xlim(-2000, 20000)
+            ax.set_zlim(-2000, 20000)
+
+            fig.show()
+
+            # --- Plot 3 2D projections in one figure ---
+
+            # Define the axes labels based on the original 3D labels
+            label_dim0 = '$u_1 y / \\nu$'
+            label_dim1 = '$u_p y / \\nu$'
+            label_dim2 = '$u_2 y / \\nu$'
+
+            cf = 10
+            # Create a figure with 1 row and 3 columns of subplots
+            # Adjusted figsize for better horizontal layout
+            fig_p, axes_p = plt.subplots(1, 3, figsize=(18, 5.5), sharex=False, sharey=False)
+            fig_p.suptitle('2D Projections of Input Space', fontsize=16)
+
+            # Subplot 1: Projection onto Dimensions 0 and 1 (XY plane)
+            axes_p[0].scatter(self.input[::cf, 0], self.input[::cf, 1],
+                            s=1, marker='o', rasterized=True, label='Original Data (Sampled)')
+            axes_p[0].scatter(inputs[:, 0], inputs[:, 1],
+                            c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
+            axes_p[0].set_xlabel(label_dim0)
+            axes_p[0].set_ylabel(label_dim1)
+            axes_p[0].set_xlim(-2000, 20000)
+            axes_p[0].set_title('Projection: Dim 0 vs Dim 1')
+            # axes_p[0].set_xscale('log')
+            axes_p[0].legend()
+            axes_p[0].grid(True, linestyle='--', alpha=0.6)
+
+            # Subplot 2: Projection onto Dimensions 0 and 2 (XZ plane)
+            axes_p[1].scatter(self.input[::cf, 0], self.input[::cf, 2],
+                            s=1, marker='o', rasterized=True, label='Original Data (Sampled)')
+            axes_p[1].scatter(inputs[:, 0], inputs[:, 2],
+                            c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
+            axes_p[1].set_xlabel(label_dim0)
+            axes_p[1].set_ylabel(label_dim2)
+            axes_p[1].set_xlim(-2000, 20000)
+            axes_p[1].set_ylim(-2000, 20000)
+            axes_p[1].set_title('Projection: Dim 0 vs Dim 2')
+            # axes_p[1].set_xscale('log')
+            # axes_p[1].set_yscale('log')
+            axes_p[1].legend()
+            axes_p[1].grid(True, linestyle='--', alpha=0.6)
+
+            # Subplot 3: Projection onto Dimensions 1 and 2 (YZ plane)
+            axes_p[2].scatter(self.input[::cf, 1], self.input[::cf, 2],
+                            s=1, marker='o', rasterized=True, label='Original Data (Sampled)')
+            axes_p[2].scatter(inputs[:, 1], inputs[:, 2],
+                            c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
+            axes_p[2].set_xlabel(label_dim1)
+            axes_p[2].set_ylabel(label_dim2)
+            axes_p[2].set_ylim(-2000, 20000)
+            axes_p[2].set_title('Projection: Dim 1 vs Dim 2')
+            # axes_p[2].set_yscale('log')
+            axes_p[2].legend()
+            axes_p[2].grid(True, linestyle='--', alpha=0.6)
+
+            # Adjust layout to prevent overlapping titles/labels
+            fig_p.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust rect to make space for suptitle
+
+            # Show all created figures
+            plt.show()
+
+
+            # Plot 3 2D projections
+            #
+            # fig_p, ax_p = plt.subplots(figsize=(10, 8))
+            # ax_p.scatter(self.input[::cf,0],self.input[::cf,1], s=1, marker='o', rasterized=True)  # s controls the size of the points
+            # ax_p.scatter(inputs[:,0], inputs[:,1], c='r', s=5, marker='x')  # Highlight the new dataset in red
+            #
+            # # Set labels and title
+            # ax_p.set_xlabel('u1 y / nu')
+            # ax_p.set_ylabel('up y / nu')
+            #
+            # fig_p.show()
+
+            return
+
+        elif purpose == 0:
         
-        # Determine bin location for this dataset
-        bin_loc = self.dataset_constants['BIN_LOCATIONS'].get(
-            dataset_key, 
-            self.dataset_constants['BIN_LOCATIONS']['default']
-        )
-        
-        # Default log scale setting for this dataset type
-        if not log_scale:
-            # Check if dataset key has a default log scale setting
-            for key, value in self.dataset_constants['LOG_SCALE'].items():
-                if key in dataset_key:
-                    log_scale = value
-                    break
-        
-        # Use absolute values of inputs if requested
-        if abs_inputs:
-            inputs = np.abs(inputs)
-        
-        # Standardize inputs for model prediction
-        if self.input_mean is None or self.input_std is None:
+            # Determine bin location for this dataset
+            bin_loc = self.dataset_constants['BIN_LOCATIONS'].get(
+                dataset_key, 
+                self.dataset_constants['BIN_LOCATIONS']['default']
+            )
+            
+            # Default log scale setting for this dataset type
+            if not log_scale:
+                # Check if dataset key has a default log scale setting
+                for key, value in self.dataset_constants['LOG_SCALE'].items():
+                    if key in dataset_key:
+                        log_scale = value
+                        break
+            
+            # Use absolute values of inputs if requested
+            if abs_inputs:
+                inputs = np.abs(inputs)
+            
+            # Standardize inputs for model prediction
+            # if self.input_mean is None or self.input_std is None:
             print("Warning: No preprocessing parameters found. Using raw inputs.")
             inputs_norm = inputs
-        else:
-            inputs_norm = (inputs - self.input_mean) / self.input_std
-            inputs_norm = np.nan_to_num(inputs_norm, nan=0)
-            inputs_norm[abs(inputs_norm) > 1e20] = 0
-        
-        # Make predictions
-        self.model.eval()
-        with torch.no_grad():
-            inputs_tensor = torch.from_numpy(inputs_norm).float().to(self.device)
-            outputs_predict = self.model(inputs_tensor).squeeze().cpu().detach().numpy()
+            # else:
+            #     self.input_mean = np.array(self.input_mean)
+            #     self.input_std = np.array(self.input_std)
+            #     inputs_norm = (inputs - self.input_mean) / self.input_std
+            #     inputs_norm = np.nan_to_num(inputs_norm, nan=0)
+            #     inputs_norm[abs(inputs_norm) > 1e20] = 0
+            
+            # Make predictions
+            self.model.eval()
+            with torch.no_grad():
+                inputs_tensor = torch.from_numpy(inputs_norm).float().to(self.device)
+                outputs_predict = self.model(inputs_tensor).squeeze().cpu().detach().numpy()
 
-        # Convert nondimensionalized outputs to dimensionalized outputs
-        for i in range(len(outputs_predict)):
-            y = unnormalized_inputs[i, 0]
-            nu = unnormalized_inputs[i, 2]
-            u = abs(unnormalized_inputs[i, 1])
-            outputs[i] = outputs[i] * nu / y
-            outputs_predict[i] = outputs_predict[i] * nu / y
-        
-        print(f"outputs_predict: {outputs_predict.shape}")
-        
-        # Initialize results dictionary
-        results = {
-            'dataset': dataset_key,
-            'log_scale': log_scale,
-            'mask_threshold': mask_threshold,
-            'fixed_height': fixed_height,
-            'metrics': {
-                'model': {
-                    'mean_rel_error': 0.0,
-                    'std_rel_error': 0.0,
-                    'mean_abs_error': 0.0,
-                    'std_abs_error': 0.0
+            # Convert nondimensionalized outputs to dimensionalized outputs
+            for i in range(len(outputs_predict)):
+                y = unnormalized_inputs[i, 0]
+                nu = unnormalized_inputs[i, 2]
+                u = abs(unnormalized_inputs[i, 1])
+                outputs[i] = outputs[i] * nu / y
+                outputs_predict[i] = outputs_predict[i] * nu / y
+            
+            print(f"outputs_predict: {outputs_predict.shape}")
+            
+            # Initialize results dictionary
+            results = {
+                'dataset': dataset_key,
+                'log_scale': log_scale,
+                'mask_threshold': mask_threshold,
+                'fixed_height': fixed_height,
+                'metrics': {
+                    'model': {
+                        'mean_rel_error': 0.0,
+                        'std_rel_error': 0.0,
+                        'mean_abs_error': 0.0,
+                        'std_abs_error': 0.0
+                    }
                 }
             }
-        }
-        
-        # Test at fixed height if requested
-        if fixed_height is not None:
-            self.visualizer.plot_results_fixed_height(
-                fixed_height=fixed_height,
-                output_pred=outputs_predict,
-                output_true=outputs,
-                dataset=dataset_key,
-                unnormalized_inputs=unnormalized_inputs,
-                flow_type=flow_type,
-                save_path=save_path,
-                abs_err=abs_err
-            )
-            return results
-        
-        # Plot error scatter
-        max_err, mean_abs_err, std_abs_err, mean_rel_err, std_rel_err = self.visualizer.plot_results_scatter_error(
-            inputs=inputs,
-            output=outputs_predict,
-            output_true=outputs,
-            dataset=dataset_key,
-            log_scale=log_scale,
-            abs_err=abs_err,
-            bin_loc=bin_loc,
-            unnormalized_inputs=unnormalized_inputs,
-            flow_type=flow_type,
-            weighted_utau=weighted_utau,
-            tauw=tauw,
-            save_path=save_path,
-            mask_threshold=mask_threshold
-        )
-        
-        # Store metrics
-        results['metrics']['model'].update({
-            'mean_rel_error': mean_rel_err,
-            'std_rel_error': std_rel_err,
-            'mean_abs_error': mean_abs_err,
-            'std_abs_error': std_abs_err,
-            'max_error': max_err
-        })
-
-        # Flatten outputs for comparison
-        outputs = outputs.flatten()
-        
-        # Compare with log law if requested
-        if compare_with_loglaw:
-            # Calculate log law predictions
-            log_predictions = np.zeros_like(outputs)
-            for idx in range(len(outputs)):
-                y = unnormalized_inputs[idx, 0]
-                nu = unnormalized_inputs[idx, 2]
-                u = abs(unnormalized_inputs[idx, 1])
-                log_predictions[idx] = self._eqwm_solve(y, nu, u)
             
-            # Plot log law error scatter
-            mean_abs_err_log, std_abs_err_log, mean_rel_err_log, std_rel_err_log = self.visualizer.plot_results_scatter_error_loglaw(
+            # Test at fixed height if requested
+            if fixed_height is not None:
+                self.visualizer.plot_results_fixed_height(
+                    fixed_height=fixed_height,
+                    output_pred=outputs_predict,
+                    output_true=outputs,
+                    dataset=dataset_key,
+                    unnormalized_inputs=unnormalized_inputs,
+                    flow_type=flow_type,
+                    save_path=save_path,
+                    abs_err=abs_err
+                )
+                return results
+            
+            # Plot error scatter
+            max_err, mean_abs_err, std_abs_err, mean_rel_err, std_rel_err = self.visualizer.plot_results_scatter_error(
                 inputs=inputs,
+                output=outputs_predict,
                 output_true=outputs,
-                log_predictions=log_predictions,
                 dataset=dataset_key,
                 log_scale=log_scale,
+                abs_err=abs_err,
                 bin_loc=bin_loc,
                 unnormalized_inputs=unnormalized_inputs,
                 flow_type=flow_type,
+                weighted_utau=weighted_utau,
+                tauw=tauw,
                 save_path=save_path,
-                mask_threshold=mask_threshold,
-                max_model_err=max_err
+                mask_threshold=mask_threshold
             )
             
-            # Store log law metrics
-            results['metrics']['loglaw'] = {
-                'mean_rel_error': mean_rel_err_log,
-                'std_rel_error': std_rel_err_log,
-                'mean_abs_error': mean_abs_err_log,
-                'std_abs_error': std_abs_err_log,
-                # 'max_error': max_err_log
-            }
+            # Store metrics
+            results['metrics']['model'].update({
+                'mean_rel_error': mean_rel_err,
+                'std_rel_error': std_rel_err,
+                'mean_abs_error': mean_abs_err,
+                'std_abs_error': std_abs_err,
+                'max_error': max_err
+            })
+
+            # Flatten outputs for comparison
+            outputs = outputs.flatten()
             
-            # Plot comparison bar chart
-            self.visualizer.plot_comparison_bar_chart(
-                model_mean=mean_rel_err,
-                model_std=std_rel_err,
-                loglaw_mean=mean_rel_err_log,
-                loglaw_std=std_rel_err_log,
-                dataset=dataset_key,
-                save_path=save_path
-            )
-        
-        return results
+            # Compare with log law if requested
+            if compare_with_loglaw:
+                # Calculate log law predictions
+                log_predictions = np.zeros_like(outputs)
+                for idx in range(len(outputs)):
+                    y = unnormalized_inputs[idx, 0]
+                    nu = unnormalized_inputs[idx, 2]
+                    u = abs(unnormalized_inputs[idx, 1])
+                    log_predictions[idx] = self._eqwm_solve(y, nu, u)
+                
+                # Plot log law error scatter
+                mean_abs_err_log, std_abs_err_log, mean_rel_err_log, std_rel_err_log = self.visualizer.plot_results_scatter_error_loglaw(
+                    inputs=inputs,
+                    output_true=outputs,
+                    log_predictions=log_predictions,
+                    dataset=dataset_key,
+                    log_scale=log_scale,
+                    bin_loc=bin_loc,
+                    unnormalized_inputs=unnormalized_inputs,
+                    flow_type=flow_type,
+                    save_path=save_path,
+                    mask_threshold=mask_threshold,
+                    max_model_err=max_err
+                )
+                
+                # Store log law metrics
+                results['metrics']['loglaw'] = {
+                    'mean_rel_error': mean_rel_err_log,
+                    'std_rel_error': std_rel_err_log,
+                    'mean_abs_error': mean_abs_err_log,
+                    'std_abs_error': std_abs_err_log,
+                    # 'max_error': max_err_log
+                }
+                
+                # Plot comparison bar chart
+                self.visualizer.plot_comparison_bar_chart(
+                    model_mean=mean_rel_err,
+                    model_std=std_rel_err,
+                    loglaw_mean=mean_rel_err_log,
+                    loglaw_std=std_rel_err_log,
+                    dataset=dataset_key,
+                    save_path=save_path
+                )
+            
+            return results
     
     def _eqwm_solve(self, y: float, nu: float, u: float) -> float:
         """

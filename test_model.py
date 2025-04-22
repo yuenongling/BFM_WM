@@ -49,5 +49,9 @@ while True:
         else:
             results, _ = load_and_test_model(model_path, test_dataset, wall_model=wall_model)
 
+        wall_model.test_external_dataset(
+            dataset_key=test_dataset,
+            purpose = 1
+        )
 
         print(results)
