@@ -260,10 +260,10 @@ class WallModelTrainer:
         self.weights_valid = None
 
         # Standardize inputs if scaling is enabled
-        self.input_mean = torch.mean(input_train, dim=0)
-        self.input_std = torch.std(input_train, dim=0)
-        input_train = (input_train - self.input_mean) / self.input_std
-        input_valid = (input_valid - self.input_mean) / self.input_std
+        # self.input_mean = torch.mean(input_train, dim=0)
+        # self.input_std = torch.std(input_train, dim=0)
+        # input_train = (input_train - self.input_mean) / self.input_std
+        # input_valid = (input_valid - self.input_mean) / self.input_std
         
         if self.config.get('model', {}).get('weights', {}).get('custom', 0) > 0:
             # Get the full weights
@@ -365,8 +365,8 @@ class WallModelTrainer:
                     'epoch': epoch + 1,
                     'train_loss': train_loss,
                     'valid_loss': valid_loss,
-                    'input_mean': self.input_mean.cpu().numpy(),
-                    'input_std': self.input_std.cpu().numpy(),
+                    # 'input_mean': self.input_mean.cpu().numpy(),
+                    # 'input_std': self.input_std.cpu().numpy(),
                     'learning_rate': self.optimizer.param_groups[0]['lr']
                 })
 
@@ -505,8 +505,8 @@ class WallModelTrainer:
             'best_valid_loss': self.best_valid_loss,
 
             # Normalization parameters (essential for inference)
-            'input_mean': self.input_mean,
-            'input_std': self.input_std,
+            # 'input_mean': self.input_mean,
+            # 'input_std': self.input_std,
 
             # Configuration and model definition params
             'config': self.config,
