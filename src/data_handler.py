@@ -6,13 +6,13 @@ import torch
 import pickle as pkl
 from typing import Dict, Tuple, List, Optional, Union
 import os
-from scipy.io import loadmat
 import sys
 import pandas as pd
+import re
 
 # Add parent directory to path to import wall_model_cases
 sys.path.insert(0, os.path.abspath('..'))
-from wall_model_cases import INPUT_TURB_FILES, TURB_CASES, DATASET_PLOT_TITLE
+from wall_model_cases import INPUT_TURB_FILES, TURB_CASES, DATASET_PLOT_TITLE, STATION
 
 class WallModelDataHandler:
     """
@@ -131,49 +131,101 @@ class WallModelDataHandler:
         print(f"Using input scaling mode: {input_scaling}")
         
         for dataset in datasets:
-            if dataset in INPUT_TURB_FILES:
-                file_path = INPUT_TURB_FILES[dataset]
-       # (Inside the loop iterating through datasets)
-            # --- CONSTRUCT HDF5 PATH ---
-                h5_file_path = None
-                if dataset in INPUT_TURB_FILES:
-                    # Construct potential HDF5 file path from INPUT_TURB_FILES (.pkl path)
-                    h5_file_path = INPUT_TURB_FILES[dataset]
+            is_station_data = False
+            case = dataset # Default case name
+            station_num = None
+            station_x = None
+            ##################################################################################################
+            # NOTE: This is to read in only data at stations
+            if 'station' in dataset:
+                match = re.search(r'(.+)_station_(\d+)$', dataset) # Get the case name and station number
+                if match:
+                    case = match.group(1) # Get the case name
+                    station_num = int(match.group(2)) # Get the station number
+                    try:
+                        # Look up the target x-coordinate for this station
+                        station_x = STATION[case][station_num]
+                        is_station_data = True
+                        print(f"Dataset '{dataset}' identified as station data: case='{case}', station_num={station_num}, target_x={station_x}")
+                    except KeyError:
+                        print(f"Warning: Station definition not found for case '{case}', station {station_num} in STATION dict. Skipping station filtering for '{dataset}'.")
                 else:
-                    # Handle datasets not listed in INPUT_TURB_FILES if necessary.
-                    # Example: Construct path directly assumes './data/DATASET_data.h5'
-                    # h5_file_path = os.path.join('./data', f'{dataset}_data.h5') # Adjust logic as needed
-                    raise ValueError(f"Dataset {dataset} not found in INPUT_TURB_FILES mapping.")
-                    # If direct path construction not implemented, set h5_file_path to None or skip
+                    print(f"Warning: Dataset key '{dataset}' contains 'station' but doesn't match expected format 'case_station_num'. Skipping station filtering.")
+            ##################################################################################################
+            if case in INPUT_TURB_FILES:
+                # Construct potential HDF5 file path from INPUT_TURB_FILES (.pkl path)
+                h5_file_path = INPUT_TURB_FILES[case]
 
                 # --- READ HDF5 FILE ---
                 if h5_file_path and os.path.exists(h5_file_path):
                     print(f"Reading HDF5 file: {h5_file_path}")
-                    try:
-                        inputs_df = pd.read_hdf(h5_file_path, key='inputs')
-                        outputs_series = pd.read_hdf(h5_file_path, key='output').iloc[:, 0] # Ensure it's a Series
-                        flow_type_df = pd.read_hdf(h5_file_path, key='flow_type')
-                        unnormalized_inputs_df = pd.read_hdf(h5_file_path, key='unnormalized_inputs')
-                        print(f"  Loaded keys: inputs, output, flow_type, unnormalized_inputs")
+                    inputs_df = pd.read_hdf(h5_file_path, key='inputs')
+                    outputs_series = pd.read_hdf(h5_file_path, key='output').iloc[:, 0] # Ensure it's a Series
+                    flow_type_df = pd.read_hdf(h5_file_path, key='flow_type')
+                    unnormalized_inputs_df = pd.read_hdf(h5_file_path, key='unnormalized_inputs')
+                    # print(f"  Loaded keys: inputs, output, flow_type, unnormalized_inputs")
 
-                        # Keep data as DataFrames for filtering and selection
-                        all_data_inputs_df = inputs_df
-                        outputs_for_processing = outputs_series
-                        flow_type_for_processing = flow_type_df
-                        unnormalized_for_filter = unnormalized_inputs_df
-
-                    except Exception as e:
-                        print(f"Error reading HDF5 file {h5_file_path} for dataset {dataset}: {e}")
-                        continue # Skip this dataset if HDF5 reading fails
+                    # Keep data as DataFrames for filtering and selection
+                    all_data_inputs_df = inputs_df
+                    outputs_for_processing = outputs_series
+                    flow_type_for_processing = flow_type_df
+                    unnormalized_for_filter = unnormalized_inputs_df
                 else:
-                    print(f"Warning: HDF5 file not found for dataset {dataset}. Expected path: {h5_file_path}. Skipping dataset.")
+                    print(f"Warning: HDF5 file not found for dataset {case}. Expected path: {h5_file_path}. Skipping dataset.")
                     continue # Skip this dataset if HDF5 file doesn't exist
+
+                # --- <<< NEW: STATION X-LOCATION FILTERING (using DataFrames) >>> ---
+                if is_station_data:
+                    print(f"Applying station filtering for station {station_num} (target x={station_x})...")
+                    # *** IMPORTANT: Adjust 'x' if the column name for x-coordinates is different ***
+                    x_coord_column = 'x'
+
+                    if x_coord_column not in flow_type_for_processing.columns:
+                        print(f"  Error: Column '{x_coord_column}' not found in flow_type DataFrame for dataset '{case}'. Cannot perform station filtering. Skipping dataset.")
+                        continue # Skip this dataset as station filtering is not possible
+
+                    if flow_type_for_processing.empty:
+                        print(f"  Warning: flow_type DataFrame is empty for dataset '{case}'. Skipping station filtering.")
+                    else:
+                        x_coords = flow_type_for_processing[x_coord_column].values # Get x-coordinates as numpy array
+
+                        # Find the index of the row with the x-coordinate closest to station_x
+                        # Note: argmin() finds the index in the numpy array `x_coords`
+                        closest_numpy_idx = np.abs(x_coords - station_x).argmin()
+                        closest_x_in_data = x_coords[closest_numpy_idx]
+
+                        # Validate if the closest point found is acceptably close
+                        if np.abs(closest_x_in_data - station_x) > 1e-3:
+                            print(f"  Error: No data points found sufficiently close to station {station_num} (target x={station_x}) in case {case}. Closest x found is {closest_x_in_data}. Skipping dataset '{dataset}'.")
+                            # Depending on requirements, you might raise ValueError here instead of continuing
+                            # raise ValueError(f"No data points found for station {station_num}...")
+                            continue
+                        else:
+                            # Create a boolean mask for rows where the x-coordinate is very close
+                            # to the *actual closest value found in the data*, handling float precision.
+                            station_mask = np.abs(flow_type_for_processing[x_coord_column] - closest_x_in_data) < 1e-6
+
+                            num_before = len(all_data_inputs_df)
+                            # Apply the mask to filter all relevant DataFrames/Series
+                            all_data_inputs_df = all_data_inputs_df[station_mask]
+                            outputs_for_processing = outputs_for_processing[station_mask]
+                            flow_type_for_processing = flow_type_for_processing[station_mask]
+                            unnormalized_for_filter = unnormalized_for_filter[station_mask]
+                            num_after = len(all_data_inputs_df)
+
+                            if num_after == 0:
+                                print(f"  Warning: Station filtering resulted in 0 data points for dataset '{dataset}' at x ≈ {closest_x_in_data:.6f}. Skipping remaining processing for this dataset.")
+                                continue # Skip further processing if no data remains
+
+                            print(f"  Filtered for station {station_num}: {num_before} -> {num_after} points at x ≈ {closest_x_in_data:.6f}")
+
+                # --- END NEW SECTION ---
 
                 # --- Filtering (using DataFrames) ---
                 upy_max = data_config.get('upy', 1.0)
                 if upy_max < 1.0:
                     # (Filtering logic using DataFrames remains the same as previous version)
-                    print(f"Filtering {dataset} with upy_max={upy_max}...")
+                    print(f"Filtering {case} with upy_max={upy_max}...")
                     if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
                         y_vals = unnormalized_for_filter['y'].values
                         delta_vals = flow_type_for_processing['delta'].astype(float).values
@@ -181,7 +233,7 @@ class WallModelDataHandler:
                         all_data_inputs_df = all_data_inputs_df[mask]
                         outputs_for_processing = outputs_for_processing[mask]
                         flow_type_for_processing = flow_type_for_processing[mask]
-                        print(f"  Filtered dataset {dataset}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
+                        print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                     else:
                         print(f"  Warning: Cannot filter by 'upy'. Missing 'y' in unnormalized or 'delta' in flow_type.")
 
@@ -203,7 +255,7 @@ class WallModelDataHandler:
                 if valid_selection:
                     inputs_selected_df = all_data_inputs_df[selected_columns]
                 else:
-                    print(f"Warning: Dataset {dataset} (HDF5 source) is missing required columns for input_scaling={input_scaling}. Required: {selected_columns}. Available: {list(available_cols)}. Skipping dataset.")
+                    print(f"Warning: Dataset {case} (HDF5 source) is missing required columns for input_scaling={input_scaling}. Required: {selected_columns}. Available: {list(available_cols)}. Skipping dataset.")
                     continue
 
                 # --- Convert final selections to NumPy for concatenation ---
@@ -216,6 +268,7 @@ class WallModelDataHandler:
                 all_flow_types.append(np.array([dataset] * len(outputs_np)))  # Store dataset name for each output
 
                 print(f"  Processed {len(inputs_np)} samples from {dataset} with {inputs_np.shape[1]} input dimensions (Scaling Mode: {input_scaling})") 
+                print(50*'-')
 
         # Combine all datasets
         if all_inputs:

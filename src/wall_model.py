@@ -423,7 +423,7 @@ class WallModel(WallModelBase):
             label_dim1 = '$u_p y / \\nu$'
             label_dim2 = '$u_2 y / \\nu$'
 
-            cf = 10
+            cf = 1
             # Create a figure with 1 row and 3 columns of subplots
             # Adjusted figsize for better horizontal layout
             fig_p, axes_p = plt.subplots(1, 3, figsize=(18, 5.5), sharex=False, sharey=False)
@@ -436,7 +436,8 @@ class WallModel(WallModelBase):
                             c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
             axes_p[0].set_xlabel(label_dim0)
             axes_p[0].set_ylabel(label_dim1)
-            axes_p[0].set_xlim(-2000, 20000)
+            axes_p[0].set_xlim(np.min(inputs[:,0]), np.max(inputs[:,0]))
+            axes_p[0].set_ylim(np.min(inputs[:,1]), np.max(inputs[:,1]))
             axes_p[0].set_title('Projection: Dim 0 vs Dim 1')
             # axes_p[0].set_xscale('log')
             axes_p[0].legend()
@@ -449,8 +450,8 @@ class WallModel(WallModelBase):
                             c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
             axes_p[1].set_xlabel(label_dim0)
             axes_p[1].set_ylabel(label_dim2)
-            axes_p[1].set_xlim(-2000, 20000)
-            axes_p[1].set_ylim(-2000, 20000)
+            axes_p[1].set_xlim(np.min(inputs[:,0]), np.max(inputs[:,0]))
+            axes_p[1].set_ylim(np.min(inputs[:,2]), np.max(inputs[:,2]))
             axes_p[1].set_title('Projection: Dim 0 vs Dim 2')
             # axes_p[1].set_xscale('log')
             # axes_p[1].set_yscale('log')
@@ -464,7 +465,8 @@ class WallModel(WallModelBase):
                             c='r', s=10, marker='x', label='New Dataset') # Increased size slightly
             axes_p[2].set_xlabel(label_dim1)
             axes_p[2].set_ylabel(label_dim2)
-            axes_p[2].set_ylim(-2000, 20000)
+            axes_p[2].set_xlim(np.min(inputs[:,1]), np.max(inputs[:,1]))
+            axes_p[2].set_ylim(np.min(inputs[:,2]), np.max(inputs[:,2]))
             axes_p[2].set_title('Projection: Dim 1 vs Dim 2')
             # axes_p[2].set_yscale('log')
             axes_p[2].legend()
