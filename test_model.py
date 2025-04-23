@@ -15,6 +15,7 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
         tauw=True,
         mask_threshold=2e-4,
         save_path=None,
+        LogTransform=wall_model.config.get('training', {}).get('LogTransform', False),
     )
 
     return results, wall_model
