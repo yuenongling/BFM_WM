@@ -152,6 +152,8 @@ class WallModelTrainer:
                 }
             },
             'training': {
+                'LogTransform': 0,
+                'LossFunction ': "MSE",
                 'optimizer': {
                     'Type': 'Adam',
                     'LearningRate': 1e-3,
@@ -503,6 +505,9 @@ class WallModelTrainer:
             'train_loss_history': self.train_loss_history,
             'valid_loss_history': self.valid_loss_history,
             'best_valid_loss': self.best_valid_loss,
+
+            # Whether to do log transformation
+            'log_transform': self.config.get('training', {}).get('LogTransform', 0),
 
             # Normalization parameters (essential for inference)
             # 'input_mean': self.input_mean,

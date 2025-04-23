@@ -225,6 +225,14 @@ class WallModel(WallModelBase):
         # Convert data to tensors
         input_train_tensor, output_train_tensor, input_valid_tensor, output_valid_tensor = \
             self.data_handler.convert_to_tensors(self.device)
+
+        # Apply log transform if specified
+        if self.config.get('training', {}).get('LogTransform', False):
+            print('*'*50)
+            print('WARNING: Log transform applied to outputs')
+            print('*'*50)
+            output_train_tensor = torch.log(1 + output_train_tensor)
+            output_valid_tensor = torch.log(1 + output_valid_tensor)
         
         # Create trainer
         trainer = WallModelTrainer(self.model, self.config, self.device)
@@ -327,7 +335,9 @@ class WallModel(WallModelBase):
                             abs_err: bool = False,
                             save_path: Optional[str] = None,
                             compare_with_loglaw: bool = True,
-                            purpose: int = 0) -> Dict[str, Any]:
+                            purpose: int = 0,
+                            LogTransform: bool = False,
+                              ) -> Dict[str, Any]:
         """
         Test the model on an external dataset
         
@@ -529,6 +539,9 @@ class WallModel(WallModelBase):
             with torch.no_grad():
                 inputs_tensor = torch.from_numpy(inputs_norm).float().to(self.device)
                 outputs_predict = self.model(inputs_tensor).squeeze().cpu().detach().numpy()
+                # Apply log transform if specified
+                if LogTransform:
+                    outputs_predict = np.exp(outputs_predict ) - 1
 
             # Convert nondimensionalized outputs to dimensionalized outputs
             for i in range(len(outputs_predict)):
@@ -743,6 +756,8 @@ class WallModel(WallModelBase):
         instance.model.load_state_dict(checkpoint['model_state_dict'])
         instance.model.to(instance.device)
         instance.model.eval()
+
+        instance.config = checkpoint['config']
         
         # Mark as trained
         instance.is_trained = True
