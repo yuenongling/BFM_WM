@@ -10,6 +10,8 @@ import os
 from typing import Dict, Tuple, List, Optional, Union, Any
 from sklearn.metrics import r2_score
 import torch
+import mplcursors
+
 
 black   = "#000000"
 blue    = "#065279"
@@ -220,6 +222,13 @@ class WallModelVisualization:
             plt.colorbar(sc, ax=ax, label='Absolute Error', orientation='vertical')
         else:
             plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
+
+        ##############################################################
+        # NOTE: Add hover information
+        cursor = mplcursors.cursor(sc, hover=True)
+        y_delta = unnormalized_inputs[:,0]/np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
+        cursor.connect("add", lambda sel: sel.annotation.set_text(f'True,Pre,Err: {output_true[sel.index]:.3e},{output[sel.index]:.3e},{err[sel.index]:.2e}% \n at x,y/delta: {float(flow_type[sel.index,2]):.2e},{y_delta[sel.index]:.3f}; utau {unnormalized_inputs[sel.index,3]:.5e}; up {unnormalized_inputs[sel.index,4]:.5e}'))
+        ##############################################################
         
         # Create histogram inset
         axins = inset_axes(ax, width="80%", height="70%", 
@@ -272,6 +281,7 @@ class WallModelVisualization:
             fig.savefig(f"{save_path}/{case_name}_wm.png", dpi=300)
             plt.close(fig)
         else:
+
             fig.show()
         
         # Return metrics
@@ -424,6 +434,7 @@ class WallModelVisualization:
             if dataset is not None:
                 ax.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law')
         
+
         # Save or show plot
         if save_path is not None:
             case_name = dataset.replace("-", "")
@@ -431,6 +442,7 @@ class WallModelVisualization:
             fig.savefig(f"{save_path}/{case_name}_loglaw.png", dpi=300)
             plt.close(fig)
         else:
+
             fig.show()
         
         # Return metrics

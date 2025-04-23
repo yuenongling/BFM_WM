@@ -4,7 +4,7 @@ TURB_CASES = [
               'CH', 'SYN', 'PIPE',
               # TBL cases
               'naca_0012', 'naca_0025',
-              'backstep', 'ph_B', 'bend', 'convdiv', 'hump']
+              'backstep', 'ph_B', 'bend', 'convdiv', 'hump', 'smoothramp']
 
 # NOTE: File extension for the input files
 EXT = 'h5'
@@ -13,7 +13,7 @@ EXT = 'h5'
 INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in TURB_CASES]))
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
-                                        'NASA Hump (Uzun et al. 2017)']))
+                                        'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)']))
 
 # NOTE: Our TBL data
 TBL_ANGLES = [-4,-3,-2,-1,5,10,15,20]
@@ -182,7 +182,7 @@ STATION = {
         "bend": [-0.193, 0.02499936, 0.17799969, 0.3300006 , 0.48299949, 0.9400002 , 1.245], # The station right after 30 degree bend
         "convdiv": [0, 2.0203, 4.0488, 8.05638],
         "backstep": [-4.,  1.,  4.,  6., 10.],
-        "ph_B": [1.1475, 4.9719, 6.052468, 8.002593, 8.354093, 8.614289],
+        "ph_B": [1.1475, 4.9719, 6.052468, 8.002593, 8.354093],
         "gaussian_2M_MAPG": [-0.59959855, -0.40889207],
         "gaussian_2M_FPG": [-0.2, -0.15, -0.1, ],
         "gaussian_2M_APG": [2.84180234e-05, 4.99274804e-02],
@@ -197,6 +197,7 @@ STATION = {
         "bub_B": [-5.05104208, -2.07188034, -1.1984396, 1.0427103, 1.99061966, 3.00625038],
         "aairfoil_10M": [0.05 , 0.08 , 0.1  , 0.15 , 0.2  , 0.5  , 0.825, 0.93, 0.99],
         "aairfoil_2M": [0.1 , 0.15 , 0.3  , 0.5 , 0.825, 0.93, 0.99],
+        "smoothramp": [-0.72, -0.2, 0, 0.3, 1.5, 3]
 }
 
 # NOTE: Add subcases for each station

@@ -14,9 +14,9 @@ import pandas as pd
 
 # --- Configuration ---
 training_datasets = ['CH','SYN','TBL_-4','TBL_-3','TBL_-2','TBL_-1','TBL_5','TBL_10','TBL_15','TBL_20', 'gaussian_2M_MAPG','gaussian_2M_FPG','gaussian_2M_APG','gaussian_2M_SEP', 'FS_ZPG','FS_FPG','FS_APG','bub_K']
-inputs_num = [0, 1, 2, 3, 4, 5] # Use the final inputs_num definition from your code
+inputs_num = [0, 1, 2, 3, 4, 5, 6] # Use the final inputs_num definition from your code
 input_files_path = '../testing_results/renamed/' # Adjust path if needed
-output_file_path = './tables/all_model_012_conditional_highlight.html' # Output file name
+output_file_path = './tables/all_model_new.html' # Output file name
 max_val_for_bars = 100 # Max value for color bar percentage calculation
 
 # --- Data Loading and Preparation ---
