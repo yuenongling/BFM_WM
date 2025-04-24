@@ -13,7 +13,7 @@ import re
 
 # Import our modules
 from src.wall_model_base import WallModelBase
-from src.data_handler import WallModelDataHandler
+from src.data_handler import WallModelDataHandler, COLUMN_MAP
 from src.visualization import WallModelVisualization
 from src.trainer import WallModelTrainer
 from src.baseline_models import LogLawPredictor, WallFunctionPredictor, EqWallModelPredictor
@@ -113,21 +113,7 @@ class WallModel(WallModelBase):
         input_scaling = self.config.get('model', {}).get('inputs', {}).get('InputScaling', 1)
         
         # Determine input dimension based on input_scaling
-        if input_scaling == 0:  # One-point velocity
-            input_dim = 1
-        elif input_scaling == 1:  # One-point velocity + up
-            input_dim = 2
-        elif input_scaling == 2:  # Two-points velocity + up
-            input_dim = 3
-        elif input_scaling == 3:  # Three-points velocity + up
-            input_dim = 4
-        elif input_scaling == 4:  # Two-points velocity
-            input_dim = 2
-        elif input_scaling == 5:  # Three-point velocity
-            input_dim = 3
-        else:
-            # Use provided or default (2)
-            input_dim = self.config.get('model', {}).get('InputDim', 2)
+        input_dim = len(COLUMN_MAP.get(input_scaling))
         
         print(f"Creating model with input dimension: {input_dim}")
         
