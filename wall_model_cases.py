@@ -4,7 +4,7 @@ TURB_CASES = [
               'CH', 'SYN', 'PIPE',
               # TBL cases
               'naca_0012', 'naca_0025',
-              'backstep', 'ph_B', 'bend', 'convdiv', 'hump', 'smoothramp']
+              'backstep', 'ph_B',  'bend', 'convdiv', 'hump', 'smoothramp']
 
 # NOTE: File extension for the input files
 EXT = 'h5'
@@ -45,7 +45,7 @@ for pos in POS:
     INPUT_TURB_FILES[f'gaussian_{RE}M_{pos}'] = f'./data/gaussian_{RE}M_data_{pos}.{EXT}'
     TURB_CASES.append(f'gaussian_{RE}M_{pos}')
     DATASET_PLOT_TITLE[f'gaussian_{RE}M_{pos}'] = f'Gaussian Bump: {RE}M {pos}'
-# NOTE: Gaussian data (2M)
+# NOTE: Gaussian data (1M)
 RE = 1
 POS = ['MAPG', 'FPG_concave', 'FPG_convex', 'APG_stable', 'APG', 'SEP']
 INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data.{EXT}'
@@ -92,6 +92,13 @@ for case in PH_CASES:
     INPUT_TURB_FILES[f'ph_{case}'] = f'./data/ph_{case}_data.{EXT}'
     TURB_CASES.append(f'ph_{case}')
     DATASET_PLOT_TITLE[f'ph_{case}'] = f'Periodic Hill: {case}'
+
+# NOTE: aairfoil with different Reynolds numbers
+RE = [2800, 10595, 19000, 37000]
+for re in RE:
+    INPUT_TURB_FILES[f'ph_G_{re}'] = f'./data/ph_G_{re}_data.{EXT}'
+    TURB_CASES.append(f'ph_G_{re}')
+    DATASET_PLOT_TITLE[f'ph_G_{re}'] = f'Periodic Hill by Gloerfelt: {case}'
 
 # NOTE: Reynolds numbers to cover for CH
 RE_NUMS = [550, 950, 2000, 4200]
