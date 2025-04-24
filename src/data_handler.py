@@ -10,6 +10,16 @@ import sys
 import pandas as pd
 import re
 
+COLUMN_MAP = {
+    0: ['u1_y_over_nu'],
+    1: ['u1_y_over_nu', 'up_y_over_nu'],
+    2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
+    3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
+    4: ['u1_y_over_nu', 'u2_y_over_nu'], 
+    5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
+    6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'upn_y_over_nu'], 
+}
+
 # Add parent directory to path to import wall_model_cases
 sys.path.insert(0, os.path.abspath('..'))
 from wall_model_cases import INPUT_TURB_FILES, TURB_CASES, DATASET_PLOT_TITLE, STATION
@@ -239,15 +249,7 @@ class WallModelDataHandler:
 
                 # --- Column Selection (using DataFrame column names) ---
                 input_scaling = data_sources.get('model', {}).get('inputs', {}).get('InputScaling', 1)
-                column_map = {
-                    0: ['u1_y_over_nu'],
-                    1: ['u1_y_over_nu', 'up_y_over_nu'],
-                    2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
-                    3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
-                    4: ['u1_y_over_nu', 'u2_y_over_nu'], 
-                    5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
-                }
-                selected_columns = column_map.get(input_scaling, column_map[1])
+                selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
 
                 available_cols = all_data_inputs_df.columns
                 valid_selection = all(col in available_cols for col in selected_columns)
@@ -448,16 +450,7 @@ class WallModelDataHandler:
                 print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points using up_y={upy_max}")
             
             # Select input columns based on input_scaling
-            column_map = {
-                0: ['u1_y_over_nu'],
-                1: ['u1_y_over_nu', 'up_y_over_nu'],
-                2: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu'],
-                3: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'],
-                4: ['u1_y_over_nu', 'u2_y_over_nu'], 
-                5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
-            }
-            
-            selected_columns = column_map.get(input_scaling, column_map[1])
+            selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
             
             # Verify all required columns exist
             if not all(col in inputs_df.columns for col in selected_columns):

@@ -300,13 +300,13 @@ class WallModel(WallModelBase):
                 save_path=save_path
             )
             
-            # Plot loss history if available
-            if hasattr(self, 'train_loss_history') and hasattr(self, 'valid_loss_history'):
-                self.visualizer.plot_loss_history(
-                    np.array(self.train_loss_history),
-                    np.array(self.valid_loss_history),
-                    save_path=save_path
-                )
+            # # Plot loss history if available
+            # if hasattr(self, 'train_loss_history') and hasattr(self, 'valid_loss_history'):
+            #     self.visualizer.plot_loss_history(
+            #         np.array(self.train_loss_history),
+            #         np.array(self.valid_loss_history),
+            #         save_path=save_path
+            #     )
         
         return r2_train, r2_valid
     
