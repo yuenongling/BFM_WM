@@ -7,7 +7,7 @@ import time
 from typing import Dict, List, Optional, Tuple, Union, Callable
 import wandb
 import glob  # Import the glob module
-from src.loss import weighted_mse_loss
+from src.loss import weighted_mse_loss, EWC_loss
 
 class WallModelTrainer:
     """
@@ -215,6 +215,7 @@ class WallModelTrainer:
               output_train: torch.Tensor,
               input_valid: torch.Tensor,
               output_valid: torch.Tensor,
+              FIM: torch.Tensor = None,
               data_handler=None,
               loss_fn: Optional[Callable] = None,
               epochs: Optional[int] = None,
@@ -229,6 +230,7 @@ class WallModelTrainer:
             output_train: Training targets
             input_valid: Validation inputs
             output_valid: Validation targets
+            FIM: Fisher Information Matrix for EWC (if applicable)
             data_handler: Optional data handler instance for custom weighting
             loss_fn: Loss function (defaults to MSE if None)
             epochs: Number of epochs (if None, uses config)
@@ -293,6 +295,19 @@ class WallModelTrainer:
                 loss_fn_valid = nn.MSELoss()
                 loss_fn = loss_fn_train
 
+        # If specific EWC in the config, override the loss function
+        if self.config.get('training', {}).get('LossFunction', '') == 'EWC':
+            use_ecw = True
+            loss_fn_ewc = EWC_loss
+            self.old_params = {
+                name: param.clone().detach() # Clone and detach to get a copy
+                for name, param in self.model.named_parameters()
+            }
+            lambda_ewc = self.config.get('training', {}).get('lambda_ewc', 0.1)
+            print(f"Using EWC loss with lambda: {lambda_ewc}")
+        else:
+            use_ecw = False
+
         # Determine saving options
         save_models = False
         save_dir = self.config.get('general', {}).get('SaveDir', './models') # Get SaveDir early
@@ -328,6 +343,10 @@ class WallModelTrainer:
             else:
                 loss = loss_fn(outputs / output_train, output_proxy_train)
 
+            # Add EWC loss if applicable
+            if use_ecw:
+                loss += loss_fn_ewc(self.model, FIM, self.old_params, lambda_ewc=lambda_ewc)
+
             # Backward pass and optimization
             self.optimizer.zero_grad()
             loss.backward()
@@ -342,6 +361,10 @@ class WallModelTrainer:
                     valid_loss = loss_fn_valid(valid_outputs / output_valid, output_proxy_valid)
                 else:
                     valid_loss = loss_fn(valid_outputs / output_valid, output_proxy_valid)
+
+                # Add EWC loss if applicable
+                if use_ecw:
+                    valid_loss += loss_fn_ewc(self.model, FIM, self.old_params, lambda_ewc=lambda_ewc)
 
             # Record losses
             train_loss = loss.item()

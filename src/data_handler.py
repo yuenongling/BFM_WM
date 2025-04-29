@@ -455,8 +455,8 @@ class WallModelDataHandler:
             # Verify all required columns exist
             if not all(col in inputs_df.columns for col in selected_columns):
                 print(f"Warning: Not all required columns {selected_columns} found in dataset. Available columns: {inputs_df.columns}")
-                # Default to first two columns if required columns not found
-                inputs = inputs_df.iloc[:, :2].values
+                # Return None if columns are missing
+                return None, None, None, None
             else:
                 inputs = inputs_df[selected_columns].values
             

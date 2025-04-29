@@ -10,6 +10,7 @@ from typing import Dict, Optional, Tuple, List, Union, Any
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score
 import re
+import copy
 
 # Import our modules
 from src.wall_model_base import WallModelBase
@@ -76,6 +77,112 @@ class WallModel(WallModelBase):
             '20': 'TBL 20°',
             'curve_pg': 'Curved Pressure Gradient'
         }
+
+    # def override_config(self, config: Dict, checkpoint=None) -> None:
+    #     print("-" * 50)
+    #     print("Overriding configuration")
+    #     print("-" * 50)
+    #     self.data_handler = WallModelDataHandler(config)
+    #     self.config = config
+    #     self.trainer = WallModelTrainer(self.model, config, self.device)
+    #     if config.get('training', {}).get('LossFunction', None) == 'EWC':
+    #         if checkpoint is None:
+    #             raise ValueError("Checkpoint must be provided for EWC loss function")
+    #         else:
+    #             FISHER_INFO_PATH = os.path.join('./models/FIM', checkpoint.split('/')[-1].replace('.pth', '_FIM.pth'))
+    #
+    def override_config(self, new_config: Dict[str, Any], checkpoint_path: Optional[str] = None) -> None:
+        """
+        Overrides the current configuration with a new one, preserving the model architecture config.
+
+        Args:
+            new_config: The new configuration dictionary to apply.
+            checkpoint_path: Optional path to the checkpoint file. Required if EWC is enabled
+                             in the new_config to load the Fisher Information Matrix.
+        """
+        print("-" * 50)
+        print("Overriding configuration while preserving model architecture config.")
+        print("-" * 50)
+
+        # --- Preserve the 'model' section from the current config ---
+        # Make a deep copy of the 'model' section from the config loaded from the checkpoint
+        # Use copy.deepcopy to ensure nested dictionaries/lists are also copied
+        preserved_model_config = copy.deepcopy(self.config.get('model', {}))
+        print("Preserved 'model' section from original config.")
+        # -----------------------------------------------------------
+
+        # --- Replace the rest of the config with the new config ---
+        # Directly assign the new config to self.config
+        self.config = new_config
+        print("Replaced config with new_config.")
+        # ----------------------------------------------------------
+
+        # --- Restore the preserved 'model' section into the new config ---
+        # Overwrite the 'model' section in the new config with the preserved one
+        self.config['model'] = preserved_model_config
+        print("Restored preserved 'model' section into the new config.")
+        # ---------------------------------------------------------------
+
+        # --- Re-initialize components that depend on the config ---
+        # Initialize data handler with the updated config
+        self.data_handler = WallModelDataHandler(self.config)
+
+        # Initialize trainer with the updated config
+        # The trainer might need to be re-initialized if training parameters changed
+        # Note: If the optimizer is part of the trainer, re-initialization is crucial
+        # If the optimizer is a separate attribute of WallModel, you might need to
+        # re-create/re-initialize it here based on the new config['training']
+        self.trainer = WallModelTrainer(self.model, self.config, self.device)
+        # -----------------------------------------------------------
+
+        # --- Handle EWC specific loading if enabled in the NEW config ---
+        # Check if EWC is enabled in the *updated* config
+        if self.config.get('training', {}).get('LossFunction', None) == 'EWC':
+            print("EWC Loss Function enabled in new config.")
+            if checkpoint_path is None:
+                # If EWC is enabled, we MUST have a checkpoint path to load the FIM
+                raise ValueError("Checkpoint path must be provided to override_config when EWC loss function is enabled in the new config.")
+            else:
+                # Construct the expected path for the Fisher Information Matrix
+                # Assumes FIM is saved in a 'FIM' subfolder relative to the script,
+                # and the filename is based on the checkpoint filename.
+                checkpoint_filename = os.path.basename(checkpoint_path)
+                FISHER_INFO_PATH = os.path.join('./models/FIM', checkpoint_filename.replace('.pth', '_FIM.pth'))
+
+                if not os.path.exists(FISHER_INFO_PATH):
+                     print(f"Warning: EWC enabled, but Fisher Information Matrix not found at {FISHER_INFO_PATH}. EWC penalty will be zero.")
+                     self.fisher_information = None # Ensure FIM is None if not found
+                else:
+                    try:
+                        self.fisher_information = torch.load(FISHER_INFO_PATH, map_location=self.device)
+                        print(f"Loaded Fisher Information Matrix from {FISHER_INFO_PATH}")
+                        # You might also need to load the 'old_params' here if they are not
+                        # already loaded as part of the main checkpoint loading process.
+                        # If load_checkpoint handles old_params, ensure they are accessible here.
+                        # If not, load them similarly to the FIM:
+                        # OLD_PARAMS_PATH = os.path.join('./models/old_params', checkpoint_filename.replace('.pth', '_old_params.pth'))
+                        # if os.path.exists(OLD_PARAMS_PATH):
+                        #      self.old_params = torch.load(OLD_PARAMS_PATH, map_location=self.device)
+                        #      print(f"Loaded old_params from {OLD_PARAMS_PATH}")
+                        # else:
+                        #      print(f"Warning: EWC enabled, but old_params not found at {OLD_PARAMS_PATH}. EWC penalty will be zero.")
+                        #      self.old_params = None
+
+                    except Exception as e:
+                        print(f"Error loading Fisher Information Matrix from {FISHER_INFO_PATH}: {e}")
+                        self.fisher_information = None # Set to None on error
+
+        else:
+             # If EWC is NOT enabled in the new config, ensure EWC related attributes are None
+             self.fisher_information = None
+             self.old_params = None
+             print("EWC Loss Function not enabled in new config.")
+
+        print("-" * 50)
+        print("Configuration override complete.")
+        print("Current config['model']:", self.config.get('model', 'Not found'))
+        print("-" * 50)   #             self.fisher_information = torch.load(FISHER_INFO_PATH)
+
     
     def _load_dataset_constants(self) -> Dict[str, Any]:
         """Load constants related to datasets"""
@@ -234,6 +341,7 @@ class WallModel(WallModelBase):
             input_valid_tensor,
             output_valid_tensor,
             data_handler=self.data_handler,
+            FIM = self.fisher_information if self.config.get('training', {}).get('LossFunction', None) == 'EWC' else None,
         )
         
         # Store loss history
@@ -359,6 +467,11 @@ class WallModel(WallModelBase):
         
         # Load and prepare external dataset
         inputs, outputs, unnormalized_inputs, flow_type = self.data_handler.load_external_dataset(case)
+        
+        if inputs is None:
+            # NOTE: Here we need to error check whether the dataset has the data we want. If not, then return None as results
+            print(f"Required data not found for dataset {dataset_key}.")
+            return None
 
         if 'station' in dataset_key:
             x = flow_type[:, 2] # Get the x-coordinates of the data set
@@ -524,10 +637,14 @@ class WallModel(WallModelBase):
             self.model.eval()
             with torch.no_grad():
                 inputs_tensor = torch.from_numpy(inputs_norm).float().to(self.device)
+
                 outputs_predict = self.model(inputs_tensor).squeeze().cpu().detach().numpy()
                 # Apply log transform if specified
                 if LogTransform:
                     outputs_predict = np.exp(outputs_predict ) - 1
+
+            if outputs_predict.ndim == 0:
+                outputs_predict = np.array([outputs_predict])
 
             # Convert nondimensionalized outputs to dimensionalized outputs
             for i in range(len(outputs_predict)):

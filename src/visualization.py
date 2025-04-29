@@ -239,7 +239,7 @@ class WallModelVisualization:
         axins.patch.set_facecolor('white')
         axins.patch.set_alpha(0.9)
         
-        if err is not None and len(err) > 0:
+        if err is not None and err.ndim > 0 and len(err) > 0:
             # Plot histogram
             sorted_err = np.sort(err)
             counts, bins, _ = axins.hist(sorted_err, bins=50, color=purple, 
@@ -385,7 +385,7 @@ class WallModelVisualization:
         # Calculate relative error
         err = np.abs((output_log - output_true_tauw) * 100 / output_true_tauw).squeeze()
         
-        if err is not None and len(err) > 0:
+        if err is not None and err.ndim > 0 and len(err) > 0:
             # Plot scatter
             sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5, 
                         norm=matplotlib.colors.LogNorm(vmin=0.1, vmax=100))

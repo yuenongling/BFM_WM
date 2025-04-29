@@ -84,3 +84,23 @@ def weighted_huber_loss(inputs, targets, weights=None, beta=1.):
         loss *= weights.expand_as(loss)
     loss = torch.mean(loss)
     return loss
+
+def EWC_loss(model, fisher_matrix, old_params, lambda_ewc=0.1):
+    """
+    Compute EWC loss for Elastic Weight Consolidation
+    
+    Args:
+        model: The model instance
+        fisher_matrix: Fisher information matrix
+        old_params: Old parameters of the model
+        lambda_ewc: Scaling factor for EWC loss
+        
+    Returns:
+        EWC loss value
+    """
+    ewc_loss = 0
+    for name, param in model.named_parameters():
+        if name in fisher_matrix:
+            ewc_loss += (fisher_matrix[name] * (param - old_params[name]) ** 2).sum()
+    print(f"Calculated EWC loss: {ewc_loss.item()*lambda_ewc:.6f}")
+    return lambda_ewc * ewc_loss
