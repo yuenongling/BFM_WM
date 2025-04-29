@@ -6,8 +6,18 @@ import sys
 config_file = sys.argv[1]
 config = parsing_wm.parse_toml_config('./inputfiles/' + config_file)
 
-# Training and saving routine
-training_instance = WallModel(config)
+checkpoint = sys.argv[2] if len(sys.argv) > 2 else None
+if checkpoint:
+    # NOTE: Here for continual training, we assume that we are working on a new dataset using EWC
+    # So by default, we also need to read in FIM and using it to add the EWC loss
+    checkpoint_path = './models/' + checkpoint
+    training_instance = WallModel.load(checkpoint_path)
+    training_instance.override_config(config, checkpoint)
+else:
+    # Training from scratch
+    training_instance = WallModel(config)
+
 training_instance.load_data()
 training_instance.train()
+
 r2_train, r2_valid = training_instance.test(save_path='./results')

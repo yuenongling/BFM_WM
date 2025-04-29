@@ -6,7 +6,7 @@ from src.wall_model import WallModel
 from wall_model_cases import TURB_CASES, TURB_CASES_TREE, print_dataset_tree, DATASET_PLOT_TITLE , STATION
 import pandas as pd
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else None
 model_path = os.path.join('./models', model_name) if model_name else None
@@ -28,6 +28,8 @@ test_datasets = ['CH',
  # 'bend_station_0','bend_station_1','bend_station_2','bend_station_3','bend_station_4','bend_station_5','bend_station_6',
  'convdiv',
  # 'convdiv_station_0','convdiv_station_1','convdiv_station_2','convdiv_station_3','convdiv_station_4',
+ 'round_step',
+ 'smoothramp',
  'TBL_-4',
  'TBL_-3',
  'TBL_-2',
@@ -97,22 +99,29 @@ for test_dataset in test_datasets:
         save_path='./dummy/'
     )
 
-    BFM_err = results['metrics']['model']['mean_rel_error']
-    log_err = results['metrics']['loglaw']['mean_rel_error']
+    plt.close()
 
-    if BFM_err == 0 and log_err == 0: # It means that no relative error has been stored here
-        print('!!!!!!!!!!! WARNING !!!!!!!!!!!')
-        print("NOTE: Use absolute error instead of relative error")
-        print('!!!!!!!!!!! WARNING !!!!!!!!!!!')
-
-        BFM_err = results['metrics']['model']['mean_abs_error']
-        log_err = results['metrics']['loglaw']['mean_abs_error']
-        abs_error.append(True)
-    else:
+    if results is None:
+        BFM_error.append(np.nan)
+        log_error.append(np.nan)
         abs_error.append(False)
+    else:
+        BFM_err = results['metrics']['model']['mean_rel_error']
+        log_err = results['metrics']['loglaw']['mean_rel_error']
 
-    BFM_error.append(BFM_err)
-    log_error.append(log_err)
+        if BFM_err == 0 and log_err == 0: # It means that no relative error has been stored here
+            print('!!!!!!!!!!! WARNING !!!!!!!!!!!')
+            print("NOTE: Use absolute error instead of relative error")
+            print('!!!!!!!!!!! WARNING !!!!!!!!!!!')
+
+            BFM_err = results['metrics']['model']['mean_abs_error']
+            log_err = results['metrics']['loglaw']['mean_abs_error']
+            abs_error.append(True)
+        else:
+            abs_error.append(False)
+
+        BFM_error.append(BFM_err)
+        log_error.append(log_err)
 
 data['Test Case'] = [DATASET_PLOT_TITLE[test_dataset] for test_dataset in test_datasets]
 data['BFM'] = BFM_error

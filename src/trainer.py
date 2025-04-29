@@ -466,6 +466,10 @@ class WallModelTrainer:
         lds_flag = 1 if self.config.get('model', {}).get('LDS', {}).get('lds', 0) > 0 else 0
         custom_w_flag = 1 if self.config.get('model', {}).get('weights', {}).get('custom', 0) > 0 else 0
 
+        # EWC flag
+        ewc_flag = 1 if self.config.get('training', {}).get('LossFunction', '') == 'EWC' else 0
+        lambda_ewc = self.config.get('training', {}).get('lambda_ewc', 0.1)
+
         # Input options
         input_scaling = self.config.get('model', {}).get('inputs', {}).get('InputScaling', 0)
 
@@ -498,6 +502,10 @@ class WallModelTrainer:
 
         # Add input scaling
         prefix += f"_inputs{input_scaling}"
+
+        # Add EWC flag if used
+        if ewc_flag:
+            prefix += f"_EWC{ewc_flag}_lambda{lambda_ewc}"
 
         return prefix
 
