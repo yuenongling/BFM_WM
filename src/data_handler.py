@@ -10,6 +10,10 @@ import sys
 import pandas as pd
 import re
 
+# NOTE: Here we define the column mapping for different input scaling modes.
+#
+# Number > 100: use upstream and downstream data
+# 
 COLUMN_MAP = {
     0: ['u1_y_over_nu'],
     1: ['u1_y_over_nu', 'up_y_over_nu'],
@@ -18,6 +22,15 @@ COLUMN_MAP = {
     4: ['u1_y_over_nu', 'u2_y_over_nu'], 
     5: ['u1_y_over_nu', 'u2_y_over_nu', 'u3_y_over_nu'], 
     6: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'upn_y_over_nu'], 
+    # Upstream Only
+    101: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_upstream'], 
+    102: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_upstream', 'u2_y_over_nu_upstream'], 
+    # Downstream Only
+    103: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_downstream'], 
+    104: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_downstream', 'u2_y_over_nu_downstream'], 
+    # Both Upstream and Downstream
+    105: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_upstream', 'u1_y_over_nu_downstream'], 
+    106: ['u1_y_over_nu', 'up_y_over_nu', 'u2_y_over_nu', 'u1_y_over_nu_upstream', 'u1_y_over_nu_downstream', 'u2_y_over_nu_upstream', 'u2_y_over_nu_downstream' ], 
 }
 
 # Add parent directory to path to import wall_model_cases

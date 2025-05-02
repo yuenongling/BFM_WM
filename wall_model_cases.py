@@ -4,7 +4,7 @@ TURB_CASES = [
               'CH', 'SYN', 'PIPE',
               # TBL cases
               'naca_0012', 'naca_0025',
-              'backstep', 'ph_B',  'bend', 'convdiv',
+              'backstep', 'axissym_BL', 'ph_B',  'bend', 'convdiv',
               'hump', 'smoothramp', 'round_step']
 
 # NOTE: File extension for the input files
@@ -13,7 +13,7 @@ EXT = 'h5'
 # NOTE: TBL has different ramp angles; will be updated by TBL
 INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in TURB_CASES]))
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
-                                        '2D Backward Step (Driver et al. 1985)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
+                                        '2D Backward Step (Driver et al. 1985)', 'Axissymetric Boundary Layer (Driver et al. 1991)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)', 'Round Step DLR']))
 
 # NOTE: Our TBL data
@@ -74,7 +74,7 @@ INPUT_TURB_FILES[f'naca_0025'] = f'./data/naca_0025_data.{EXT}'
 DATASET_PLOT_TITLE[f'naca_0025'] = f'NACA0025'
 
 # NOTE: Falkner-Skan laminar boundary layer
-LBL_CASES = ['ZPG','FPG','APG']
+LBL_CASES = ['ZPG','FPG','APG', 'ALL']
 for case in LBL_CASES:
     INPUT_TURB_FILES[f'FS_{case}'] = f'./data/FS_{case}_data.{EXT}'
     TURB_CASES.append(f'FS_{case}')
@@ -84,6 +84,11 @@ for case in LBL_CASES:
 INPUT_TURB_FILES[f'Stokes2'] = f'./data/Stokes2_data.{EXT}'
 TURB_CASES.append(f'Stokes2')
 DATASET_PLOT_TITLE[f'Stokes2'] = f'Stokes Second Problem'
+
+# NOTE: Oscillating pipe
+INPUT_TURB_FILES[f'OscPipe'] = f'./data/OscPipe_data.{EXT}'
+TURB_CASES.append(f'OscPipe')
+DATASET_PLOT_TITLE[f'OscPipe'] = f'Oscillating Pipe'
 
 # NOTE: Cases with curvature from Applebaum et al. (2025)
 CURVE_CASES = ['pg']
@@ -187,6 +192,16 @@ TURB_CASES_TREE = {
     "backstep": {},
     "ph_B": {},
 }
+###############################
+# NOTE: Go over all cases and add a "stencil" version 
+#       Currently, we only support a few cases
+#       1. TBL
+#       2. apg by KTH
+#       3. Channel and Pipe
+TURB_CASES_WITH_STENCIL = ['TBL_5', 'CH', 'PIPE', 'apg_b1n', 'apg_b2n', 'apg_m13n', 'apg_m16n', 'apg_m18n', 'TBL_-4', 'TBL_-3', 'TBL_-2', 'TBL_-1', 'TBL_5', 'TBL_10', 'TBL_15', 'TBL_20']
+for case in TURB_CASES_WITH_STENCIL:
+    TURB_CASES += [f'{case}_stencil']
+    INPUT_TURB_FILES[f'{case}_stencil'] = f'./data/stencil/{case}_data_stencils.{EXT}'
 
 #################
 # NOTE: Here we also define whether for each cases, we have extra cases focusing on certain cases
@@ -219,3 +234,4 @@ for case in STATION:
         # TURB_CASES_TREE[case][f'station_{i}'] = {}
         TURB_CASES.append(f'{case}_station_{i}')
         DATASET_PLOT_TITLE[f'{case}_station_{i}'] = f'{DATASET_PLOT_TITLE[case]}, Station: {station}'
+
