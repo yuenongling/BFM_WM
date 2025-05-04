@@ -90,6 +90,22 @@ INPUT_TURB_FILES[f'OscPipe'] = f'./data/OscPipe_data.{EXT}'
 TURB_CASES.append(f'OscPipe')
 DATASET_PLOT_TITLE[f'OscPipe'] = f'Oscillating Pipe'
 
+# NOTE: Transition ZPG boundary layer from JHU
+INPUT_TURB_FILES[f'Transition'] = f'./data/transition_JHU_data.{EXT}'
+TURB_CASES.append(f'Transition')
+DATASET_PLOT_TITLE[f'Transition'] = f'Transition ZPG Boundary Layer'
+# NOTE: Transition ZPG boundary layer from JHU
+REGION = ['laminar', 'transition', 'turbulent']
+for rg in REGION:
+    INPUT_TURB_FILES[f'Transition_{rg}'] = f'./data/transition_JHU_{rg}_data.{EXT}'
+    TURB_CASES.append(f'Transition_{rg}')
+    DATASET_PLOT_TITLE[f'Transition_{rg}'] = f'Transition ZPG Boundary Layer: {rg} region'
+
+# NOTE: NACA0012 laminar (Rec=5000)
+INPUT_TURB_FILES[  f'naca0012_laminar'] = f'./data/naca0012_laminar_data.{EXT}'
+TURB_CASES.append( f'naca0012_laminar')
+DATASET_PLOT_TITLE[f'naca0012_laminar'] = f'Laminar NACA0012 (Rec=5000)'
+
 # NOTE: Cases with curvature from Applebaum et al. (2025)
 CURVE_CASES = ['pg']
 for case in CURVE_CASES:
@@ -110,9 +126,6 @@ for re in RE:
     INPUT_TURB_FILES[f'ph_G_{re}'] = f'./data/ph_G_{re}_data.{EXT}'
     TURB_CASES.append(f'ph_G_{re}')
     DATASET_PLOT_TITLE[f'ph_G_{re}'] = f'Periodic Hill by Gloerfelt: {case}'
-
-# NOTE: Reynolds numbers to cover for CH
-RE_NUMS = [550, 950, 2000, 4200]
 
 
 def print_dataset_tree(datasets, indent=0):
