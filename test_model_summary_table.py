@@ -75,6 +75,12 @@ test_datasets = ['CH',
  'FS_APG',
 ]
 
+test_datasets = ['Transition_laminar',
+'naca_0025_Laminar',
+'naca_0025_Transition',
+'naca_0025_Turbulent',
+                 ]
+
 # NOTE: The following code is used to add the station datasets to the test_datasets list
 for dataset in test_datasets:
     if dataset in STATION:
@@ -133,7 +139,7 @@ df = pd.DataFrame(data)
 # # Save testing results to CSV
 # Remove extension from model name
 model_name = model_name.split('.')[0]
-with open(f'./testing_results/{model_name}.csv', 'w') as f:
+with open(f'./testing_results/{model_name}_append.csv', 'w') as f:
     pd.DataFrame(data).to_csv(f, index=False)
 
 #########################################

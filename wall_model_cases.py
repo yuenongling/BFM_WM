@@ -15,6 +15,10 @@ INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Axissymetric Boundary Layer (Driver et al. 1991)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)', 'Round Step DLR']))
+# NOTE: Channel with rotation
+INPUT_TURB_FILES[f'CH_rot'] = f'./data/CH_rot_data.h5'
+TURB_CASES.append(f'CH_rot')
+DATASET_PLOT_TITLE[f'CH_rot'] = f'Channel with Rotation'
 
 # NOTE: Our TBL data
 TBL_ANGLES = [-4,-3,-2,-1,5,10,15,20]
@@ -57,21 +61,35 @@ for pos in POS:
     TURB_CASES.append(f'gaussian_{RE}M_{pos}')
     DATASET_PLOT_TITLE[f'gaussian_{RE}M_{pos}'] = f'Gaussian Bump: {RE}M {pos}'
 
-# NOTE: aairfoil with different Reynolds numbers
+# NOTE: Different bubble cases
 BUB_SUB = ['A', 'B', 'C', 'K']
 for sub in BUB_SUB:
     INPUT_TURB_FILES[f'bub_{sub}'] = f'./data/bub_{sub}_data.{EXT}'
     TURB_CASES.append(f'bub_{sub}')
     DATASET_PLOT_TITLE[f'bub_{sub}'] = f'Pressure-induced Separation bubble, Subcase: {sub}'
+# NOTE: Bubble with swept
+sub = 'C35'
+INPUT_TURB_FILES[f'bub_{sub}'] = f'./data/bub_{sub}_data.{EXT}'
+TURB_CASES.append(f'bub_{sub}')
+DATASET_PLOT_TITLE[f'bub_{sub}'] = f'Pressure-induced Separation bubble with swept, Subcase: {sub}'
+
 # NOTE: naca4412 with different Reynolds numbers
 NACA_SUB = ['10', '4', '2', '1']
 for sub in NACA_SUB:
     INPUT_TURB_FILES[f'naca_4412_{sub}'] = f'./data/naca_4412_top{sub}n_data.{EXT}'
     TURB_CASES.append(f'naca_4412_{sub}')
     DATASET_PLOT_TITLE[f'naca_4412_{sub}'] = f'NACA4412 Re={sub}00000'
+# NOTE: naca0012 (turbulent, KTH) 
 INPUT_TURB_FILES[f'naca_0012'] = f'./data/naca_0012_top4n12_data.{EXT}'
-INPUT_TURB_FILES[f'naca_0025'] = f'./data/naca_0025_data.{EXT}'
+
+# NOTE: NACA0025 from Konrad (private communication)
+INPUT_TURB_FILES[f'naca_0025'] = f'./data/naca0025_Konrad_data.{EXT}'
 DATASET_PLOT_TITLE[f'naca_0025'] = f'NACA0025'
+REGION = ['Laminar', 'Transition', 'Turbulent']
+for rg in REGION:
+    INPUT_TURB_FILES[f'naca_0025_{rg}'] = f'./data/naca0025_{rg}_Konrad_data.{EXT}'
+    TURB_CASES.append(f'naca_0025_{rg}')
+    DATASET_PLOT_TITLE[f'naca_0025_{rg}'] = f'NACA_0025: {rg} region'
 
 # NOTE: Falkner-Skan laminar boundary layer
 LBL_CASES = ['ZPG','FPG','APG', 'ALL']
@@ -120,7 +138,7 @@ for case in PH_CASES:
     TURB_CASES.append(f'ph_{case}')
     DATASET_PLOT_TITLE[f'ph_{case}'] = f'Periodic Hill: {case}'
 
-# NOTE: aairfoil with different Reynolds numbers
+# NOTE: ph_G from Gloerfelt et al. (2019)
 RE = [2800, 10595, 19000, 37000]
 for re in RE:
     INPUT_TURB_FILES[f'ph_G_{re}'] = f'./data/ph_G_{re}_data.{EXT}'
