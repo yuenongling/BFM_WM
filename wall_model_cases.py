@@ -29,6 +29,11 @@ INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Axissymetric Boundary Layer (Driver et al. 1991)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)', 'Round Step DLR']))
+# NOTE: Swept wing (35 degree yaw) data
+INPUT_TURB_FILES[f'swept_wing'] = f'./data/swept_wing_data.h5'
+TURB_CASES.append(f'swept_wing')
+DATASET_PLOT_TITLE[f'swept_wing'] = f'Swept wing (Van den Berg et al. 1975)'
+
 # NOTE: Duct
 INPUT_TURB_FILES[f'duct'] = f'./data/DUCT_data.h5'
 TURB_CASES.append(f'duct')
