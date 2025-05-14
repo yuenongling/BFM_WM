@@ -1,3 +1,17 @@
+'''
+This is the file where we define the cases we want to use for training or testing the model.
+
+Standard way to introduce a new case:
+# NOTE: New case
+# Replace 
+# 1. *Case_name* with the name of the case
+# 2. *./data/datafile.h5* with the path to the data file
+# 3. *Title for the case* with the title of the case
+INPUT_TURB_FILES[f'Case_name'] = f'./data/datafile.h5']
+TURB_CASES.append(f'Case_name')
+DATASET_PLOT_TITLE[f'Case_name'] = f'Title for the case'
+'''
+
 # NOTE: High-fidelity data: case names and corresponding input files
 TURB_CASES = [
               # High Reynolds number ZPG cases
@@ -15,6 +29,16 @@ INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Axissymetric Boundary Layer (Driver et al. 1991)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)', 'Round Step DLR']))
+# NOTE: Duct
+INPUT_TURB_FILES[f'duct'] = f'./data/DUCT_data.h5'
+TURB_CASES.append(f'duct')
+DATASET_PLOT_TITLE[f'duct'] = f'Duct (Pirozzo et al. 2018)'
+
+# NOTE: diffuser
+INPUT_TURB_FILES[f'diffuser'] = f'./data/diffuser_data.h5'
+TURB_CASES.append(f'diffuser')
+DATASET_PLOT_TITLE[f'diffuser'] = f'Cherry Diffuser (Ohlsson et al. 2010)'
+
 # NOTE: Channel with rotation
 INPUT_TURB_FILES[f'CH_rot'] = f'./data/CH_rot_data.h5'
 TURB_CASES.append(f'CH_rot')
