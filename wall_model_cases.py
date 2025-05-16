@@ -29,6 +29,35 @@ INPUT_TURB_FILES = dict(zip(TURB_CASES, [f'./data/{case}_data.{EXT}' for case in
 DATASET_PLOT_TITLE = dict(zip(TURB_CASES, [r'Channel flow $Re_{\tau}:550-4200$', 'Synthetic (log law) data (up to $Re_{\tau}=100,000$)', 'Pipe (up to $Re_{\tau}=12,000$)', 'NACA0012 Re=400K', 'NACA0025', 
                                         '2D Backward Step (Driver et al. 1985)', 'Axissymetric Boundary Layer (Driver et al. 1991)', 'Periodic Hill (Balakumar 2015)', 'Bended Boundary Layer (Smits et al. 1979)', 'Convergent and Divergent Channel (Laval et al. 2009)',
                                         'NASA Hump (Uzun et al. 2017)', 'Smooth Ramp (Uzun et al. 2024)', 'Round Step DLR']))
+
+# NOTE: Psuedo-Ekman by Spalart 1988
+casename = 'strained_TBL'
+Z_LIST = [-150, -100, 0]
+for z in Z_LIST:
+    INPUT_TURB_FILES[f'{casename}_z{z}'] = f'./data/{casename}_z{z}_data.{EXT}'
+    TURB_CASES.append(f'{casename}_z{z}')
+    DATASET_PLOT_TITLE[f'{casename}_z{z}'] = f'{casename} z={z}'
+
+# NOTE: Psuedo-Ekman by Spalart 1988
+INPUT_TURB_FILES[f'Ekman'] = f'./data/Ekman_data.{EXT}'
+TURB_CASES.append(f'Ekman')
+DATASET_PLOT_TITLE[f'Ekman'] = f'Pseudo-Ekman by Spalart (1988)'
+
+# NOTE: Concave TBL by Johnson et al. (1988)
+INPUT_TURB_FILES[f'Concave_J'] = f'./data/Concave_Johnson_data.{EXT}'
+TURB_CASES.append(f'Concave_J')
+DATASET_PLOT_TITLE[f'Concave_J'] = f'Concave TBL by Johnson et al. (1988)'
+
+# NOTE: APG TBL by Gasser et al.
+INPUT_TURB_FILES[f'APG_Gasser'] = f'./data/APG_Gasser_data.{EXT}'
+TURB_CASES.append(f'APG_Gasser')
+DATASET_PLOT_TITLE[f'APG_Gasser'] = f'APG Gasser et al.'
+
+# NOTE: Backstep step with 6 degree expansion angle
+INPUT_TURB_FILES[f'backstep_inc'] = f'./data/backstep_inclined_data.{EXT}'
+TURB_CASES.append(f'backstep_inc')
+DATASET_PLOT_TITLE[f'backstep_inc'] = f'2D Backward Step with 6 degree inclination (Driver et al. 1985)'
+
 # NOTE: Swept wing (35 degree yaw) data
 INPUT_TURB_FILES[f'swept_wing'] = f'./data/swept_wing_data.h5'
 TURB_CASES.append(f'swept_wing')
@@ -154,11 +183,14 @@ TURB_CASES.append( f'naca0012_laminar')
 DATASET_PLOT_TITLE[f'naca0012_laminar'] = f'Laminar NACA0012 (Rec=5000)'
 
 # NOTE: Cases with curvature from Applebaum et al. (2025)
-CURVE_CASES = ['pg']
-for case in CURVE_CASES:
-    INPUT_TURB_FILES[f'curve_{case}'] = f'./data/curve_{case}_data.{EXT}'
-    TURB_CASES.append(f'curve_{case}')
-    DATASET_PLOT_TITLE[f'curve_{case}'] = f'Boundary layer with curvature: {case}'
+INPUT_TURB_FILES[f'curved_TBL'] = f'./data/curved_TBL_data.{EXT}'
+TURB_CASES.append(f'curved_TBL')
+DATASET_PLOT_TITLE[f'curved_TBL'] = f'Boundary layer with curvature'
+REGION = ['APG', 'FPG']
+for r in REGION:
+    INPUT_TURB_FILES[f'curved_TBL_{r}'] = f'./data/curved_TBL_{r}_data.{EXT}'
+    TURB_CASES.append(f'curved_TBL_{r}')
+    DATASET_PLOT_TITLE[f'curved_TBL_{r}'] = f'Boundary layer with curvature: {r}'
 
 # NOTE: Periodic Hill from Xiao et al. (2020)
 PH_CASES = ['X']
