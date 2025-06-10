@@ -12,6 +12,8 @@ TURB_CASES.append(f'Case_name')
 DATASET_PLOT_TITLE[f'Case_name'] = f'Title for the case'
 '''
 
+import numpy as np
+
 # NOTE: High-fidelity data: case names and corresponding input files
 TURB_CASES = [
               # High Reynolds number ZPG cases
@@ -207,6 +209,13 @@ for r in REGION:
     INPUT_TURB_FILES[f'curved_TBL_{r}'] = f'./data/curved_TBL_{r}_data.{EXT}'
     TURB_CASES.append(f'curved_TBL_{r}')
     DATASET_PLOT_TITLE[f'curved_TBL_{r}'] = f'Boundary layer with curvature: {r}'
+
+# NOTE: TBL by Volino(2020)
+CASE = np.arange(1, 9)
+for c in CASE:
+    INPUT_TURB_FILES[f'TBL_Volino_{c}'] = f'./data/TBL_Volino_{c}_data.{EXT}'
+    TURB_CASES.append(f'TBL_Volino_{c}')
+    DATASET_PLOT_TITLE[f'TBL_Volino_{c}'] = f'Turbulent Boundary layer with first FPG and APG by Volino (2020), Case: {c}'
 
 # NOTE: Periodic Hill from Xiao et al. (2020)
 PH_CASES = ['X']
