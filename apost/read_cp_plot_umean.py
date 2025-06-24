@@ -12,20 +12,20 @@ y_dns = DNS_data[:, 0]
 u_dns = DNS_data[:, 2] * utau
 u_dns = u_dns / np.max(u_dns)  # Normalize u_dns by its maximum value
 
-EQWM_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_eqwm.cp", skiprows=6)
+EQWM_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_eqwm_tf.cp", skiprows=6)
 umean_eqwm = EQWM_data[:, 4]
 y_eqwm = EQWM_data[:, 2]
 umean_eqwm = umean_eqwm / np.max(umean_eqwm)
 
-BFM_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_bfm.cp", skiprows=6)
+BFM_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_bfm_tf.cp", skiprows=6)
 umean_bfm = BFM_data[:, 4]
 y_bfm = BFM_data[:, 2]
 umean_bfm = umean_bfm / np.max(umean_bfm)
 
-bfmbfm_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_bfmbfm.cp", skiprows=6)
-umean_bfmbfm = bfmbfm_data[:, 4]
-y_bfmbfm = bfmbfm_data[:, 2]
-umean_bfmbfm = umean_bfmbfm / np.max(umean_bfmbfm)
+# bfmbfm_data = np.loadtxt(f"./CH_stats/umean_CH4200{grid}_bfmbfm.cp", skiprows=6)
+# umean_bfmbfm = bfmbfm_data[:, 4]
+# y_bfmbfm = bfmbfm_data[:, 2]
+# umean_bfmbfm = umean_bfmbfm / np.max(umean_bfmbfm)
 
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.plot(umean_eqwm, y_eqwm, '-x', label="EQWM", color='blue', linewidth=2)
@@ -43,10 +43,10 @@ plt.show()
 
 # Wall shear stress calculation
 area = 157.914
-EQWM_force = np.loadtxt(f"./CH_stats/force_CH4200{grid}_eqwm.dat", skiprows=3)
+EQWM_force = np.loadtxt(f"./CH_stats/force_CH4200{grid}_eqwm_tf.dat", skiprows=3)
 tauw_eqwm = EQWM_force[200:-10, 12] / area
-BFM_force = np.loadtxt(f"./CH_stats/force_CH4200{grid}_bfm.dat"  , skiprows=3)
-tauw_bfm = BFM_force[500:-20, 12] / area
+BFM_force = np.loadtxt(f"./CH_stats/force_CH4200{grid}_bfm_tf.dat"  , skiprows=3)
+tauw_bfm = BFM_force[1990:, 12] / area
 # BFMBFM_force = np.loadtxt(f"./CH_stats/force_CH4200{grid}_bfmbfm.dat"  , skiprows=3)
 # tauw_bfmbfm = BFMBFM_force[500:-20, 12] / area
 

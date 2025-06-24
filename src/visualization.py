@@ -23,6 +23,16 @@ yellow  = "#c89b40"
 green   = "#75878a"
 grey    = "#36282b"
 
+plt.rcParams.update({
+    "text.usetex": True,
+})
+plt.rcParams['axes.labelsize'] = 32  # Adjust as desired
+plt.rcParams['xtick.labelsize'] = 24  # Adjust as desired
+plt.rcParams['ytick.labelsize'] = 24  # Adjust as desired
+plot_size = (12, 12)  # Default plot size
+markersize = 18  # Default marker size
+cmap = 'magma'
+
 class WallModelVisualization:
     """
     Handles visualization and result analysis for wall models
@@ -137,9 +147,6 @@ class WallModelVisualization:
         """
         if inputs.shape[1] == 1:
             inputs = np.hstack((inputs, inputs))
-
-        # Create figure
-        fig, ax = plt.subplots(figsize=(10, 6))
         
         # Calculate tauw predictions
         nu = unnormalized_inputs[:,2]
@@ -168,15 +175,16 @@ class WallModelVisualization:
                 err_abs = np.abs(output_tauw - output_true_tauw).squeeze()
                 
                 # Plot separation region results
-                fig_abs, ax_abs = plt.subplots(figsize=(10, 6))
-                sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, 
-                                       cmap='inferno', s=2.5)
-                plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
+                fig_abs, ax_abs = plt.subplots(figsize=plot_size)
+                sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, # edgecolors=black, linewidths=0.05,
+                                    cmap=cmap, s=markersize, rasterized=True)
+                # if save_path is None:
+                #     plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
                 
                 # Set labels and title
-                ax_abs.set_xlabel(r'$\Pi_1$')
-                ax_abs.set_ylabel(r'$\Pi_2$')
-                if dataset is not None:
+                ax_abs.set_xlabel(r'$u_1y_1/\nu$')
+                ax_abs.set_ylabel(r'$u_py_1/\nu$')
+                if dataset is not None and save_path is None:
                     ax_abs.set_title(f'{self.dataset_labels.get(dataset, dataset)} using BFM \n (near separation) [Mean error: {np.mean(err_abs):.2e}]')
                 
                 # Save or show plot
@@ -196,7 +204,14 @@ class WallModelVisualization:
             unnormalized_inputs = unnormalized_inputs[kept_idx]
 
         # Create figure
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # fig, ax = plt.subplots(figsize=plot_size)
+        fig = plt.figure(figsize=plot_size) # Adjust figure size as needed
+        # NOTE: Create gridspec for better layout
+        # Top: Histogram inset; Bottom: Scatter plot
+        gs = fig.add_gridspec(2, 1, height_ratios=[1, 5], hspace=0.25) # Increased hspace slightly
+
+        axins = fig.add_subplot(gs[0, 0]) # NOTE: Histogram
+        ax      = fig.add_subplot(gs[1, 0]) # NOTE: Scatter plot
         
         # Calculate errors
         if abs_err:
@@ -211,17 +226,15 @@ class WallModelVisualization:
                 err = err * utau
         
         # Plot scatter
-        # if log_scale:
-        sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5, 
+        sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap=cmap, s=markersize,  rasterized=True, # edgecolors=black, linewidths=0.05,
                         norm=matplotlib.colors.LogNorm(vmin=0.1, vmax=100))
-        # else:
-        #     sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5)
         
         # Add colorbar
-        if abs_err:
-            plt.colorbar(sc, ax=ax, label='Absolute Error', orientation='vertical')
-        else:
-            plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
+        # if save_path is None:
+        #     if abs_err:
+        #         plt.colorbar(sc, ax=ax, label='Absolute Error', orientation='vertical')
+        #     else:
+        #         plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
 
         ##############################################################
         # NOTE: Add hover information
@@ -231,13 +244,13 @@ class WallModelVisualization:
         ##############################################################
         
         # Create histogram inset
-        axins = inset_axes(ax, width="80%", height="70%", 
-                          bbox_to_anchor=bin_loc,
-                          bbox_transform=ax.transAxes)
+        # axins = inset_axes(ax, width="80%", height="70%", 
+        #                   bbox_to_anchor=bin_loc,
+        #                   bbox_transform=ax.transAxes)
         
         # Add semi-opaque background
-        axins.patch.set_facecolor('white')
-        axins.patch.set_alpha(0.9)
+        # axins.patch.set_facecolor('white')
+        # axins.patch.set_alpha(0.9)
         
         if err is not None and err.ndim > 0 and len(err) > 0:
             # Plot histogram
@@ -249,36 +262,42 @@ class WallModelVisualization:
             # Set histogram properties
             axins.set_xticks(np.linspace(0, 100, 11))
             axins.set_xlim(0, 100)
+            axins.set_xlabel(rf'Relative Error (\%)', fontsize=24)
+            axins.set_ylabel(rf'Relative\\ Frequency (\%)', fontsize=20)
             max_count = np.ceil(max(counts))
             axins.set_yticks(np.linspace(0, max_count, 6))
+
+            axins.tick_params(axis='x', labelsize=13) # Even smaller tick labels for inset
+            axins.tick_params(axis='y', labelsize=13)
             
             # Calculate statistics
             n_outside = np.sum(err > 100)
             outside_percent = n_outside / len(err) * 100
-            below_10_percent = np.mean(err <= 10) * 100
+            below_20_percent = np.mean(err <= 20) * 100
             
             # Add annotations
-            if outside_percent > 0:
-                axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
-                        transform=axins.transAxes, fontsize=8, fontweight='bold',
+            if outside_percent > 0.01:
+                axins.text(0.8, 0.75, fr'$>{100}\%: {outside_percent:.1f}\%$',
+                        transform=axins.transAxes, fontsize=18, fontweight='bold',
                         bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
             
-            axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
-            axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
-                    fontsize=7, fontweight='bold',
-                    bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
+            axins.axvline(x=20, color=green, linestyle='--', alpha=0.9)
+            axins.text(22, axins.get_ylim()[1] * 0.7, fr'$\le 20\%: {below_20_percent:.1f}\%$',
+                    fontsize=18, fontweight='bold',
+                    bbox=dict(facecolor='none', alpha=0.7, edgecolor=green))
             
             # Set labels and title
-            ax.set_xlabel(r'$\Pi_1$')
-            ax.set_ylabel(r'$\Pi_2$')
-            if dataset is not None:
-                ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
+            ax.set_xlabel(rf'$u_1y_1/\nu$')
+            ax.set_ylabel(rf'$u_py_1/\nu$')
+            # if dataset is not None and save_path is None:
+            #     ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
         
         # Save or show plot
         if save_path is not None:
             case_name = dataset.replace("-", "")
-            fig.savefig(f"{save_path}/{case_name}_wm.pdf", dpi=300)
-            fig.savefig(f"{save_path}/{case_name}_wm.png", dpi=300)
+            plt.tight_layout()
+            fig.savefig(f"{save_path}/{case_name}_wm.pdf", dpi=300, bbox_inches='tight')
+            fig.savefig(f"{save_path}/{case_name}_wm.png", dpi=300, bbox_inches='tight')
             plt.close(fig)
         else:
 
@@ -326,9 +345,6 @@ class WallModelVisualization:
         if inputs.shape[1] == 1:
             inputs = np.hstack((inputs, inputs))
 
-        # Create figure
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
         # Extract flow parameters
         utau = unnormalized_inputs[:, 3]
         
@@ -355,22 +371,24 @@ class WallModelVisualization:
                 err_abs = np.abs(output_log_sep - output_true_sep).squeeze()
                 
                 # Plot separation region results
-                fig_abs, ax_abs = plt.subplots(figsize=(10, 6))
-                sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, 
-                                       cmap='inferno', s=2.5, vmax=max_model_err)
-                plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
+                fig_abs, ax_abs = plt.subplots(figsize=plot_size)
+                sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, rasterized=True, # edgecolors=black, linewidths=0.05,
+                                       cmap=cmap, s=markersize, vmax=max_model_err)
+                # if save_path is None:
+                #     plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
                 
                 # Set labels and title
-                ax_abs.set_xlabel(r'$\Pi_1$')
-                ax_abs.set_ylabel(r'$\Pi_2$')
-                if dataset is not None:
+                ax_abs.set_xlabel(r'$u_1y_1/\nu$')
+                ax_abs.set_ylabel(r'$u_py_1/\nu$')
+                if dataset is not None and save_path is None:
                     ax_abs.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law \n (near separation) [Mean error: {np.mean(err_abs):.2e}]')
                 
                 # Save or show plot
                 if save_path is not None:
                     case_name = dataset.replace("-", "")
-                    fig_abs.savefig(f"{save_path}/{case_name}_loglaw_abs.pdf", dpi=300)
-                    fig_abs.savefig(f"{save_path}/{case_name}_loglaw_abs.png", dpi=300)
+                    plt.tight_layout()
+                    fig_abs.savefig(f"{save_path}/{case_name}_loglaw_abs.pdf", dpi=300, bbox_inches='tight')
+                    fig_abs.savefig(f"{save_path}/{case_name}_loglaw_abs.png", dpi=300, bbox_inches='tight')
                     plt.close(fig_abs)
                 else:
                     fig_abs.show()
@@ -381,24 +399,24 @@ class WallModelVisualization:
             output_true_tauw = output_true_tauw[kept_idx]
             flow_type = flow_type[kept_idx]
             unnormalized_inputs = unnormalized_inputs[kept_idx]
+
+        # Create figure
+        # fig, ax = plt.subplots(figsize=plot_size)
+        fig = plt.figure(figsize=plot_size) # Adjust figure size as needed
+        # NOTE: Create gridspec for better layout
+        # Top: Histogram inset; Bottom: Scatter plot
+        gs = fig.add_gridspec(2, 1, height_ratios=[1, 5], hspace=0.25) # Increased hspace slightly
+
+        axins = fig.add_subplot(gs[0, 0]) # NOTE: Histogram
+        ax      = fig.add_subplot(gs[1, 0]) # NOTE: Scatter plot
         
         # Calculate relative error
         err = np.abs((output_log - output_true_tauw) * 100 / output_true_tauw).squeeze()
         
         if err is not None and err.ndim > 0 and len(err) > 0:
             # Plot scatter
-            sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap='inferno', s=2.5, 
+            sc = ax.scatter(inputs[:, 0], inputs[:, 1], c=err, cmap=cmap, s=markersize, rasterized=True, # edgecolors=black, linewidths=0.05
                         norm=matplotlib.colors.LogNorm(vmin=0.1, vmax=100))
-            plt.colorbar(sc, ax=ax, label='Relative Error (%)', orientation='vertical')
-            
-            # Create histogram inset
-            axins = inset_axes(ax, width="80%", height="70%", 
-                            bbox_to_anchor=bin_loc,
-                            bbox_transform=ax.transAxes)
-            
-            # Add semi-opaque background
-            axins.patch.set_facecolor('white')
-            axins.patch.set_alpha(0.9)
             
             # Plot histogram
             sorted_err = np.sort(err)
@@ -409,37 +427,41 @@ class WallModelVisualization:
             # Set histogram properties
             axins.set_xticks(np.linspace(0, 100, 11))
             axins.set_xlim(0, 100)
+            axins.set_xlabel(rf'Relative Error (\%)', fontsize=24)
+            axins.set_ylabel(rf'Relative\\ Frequency (\%)', fontsize=20)
             max_count = np.ceil(max(counts))
             axins.set_yticks(np.linspace(0, max_count, 6))
+            
+            axins.tick_params(axis='x', labelsize=13) # Even smaller tick labels for inset
+            axins.tick_params(axis='y', labelsize=13)
             
             # Calculate statistics
             n_outside = np.sum(err > 100)
             outside_percent = n_outside / len(err) * 100
-            below_10_percent = np.mean(err <= 10) * 100
+            below_20_percent = np.mean(err <= 20) * 100
             
             # Add annotations
-            if outside_percent > 0:
-                axins.text(0.7, 0.8, f'>{100}%: {outside_percent:.1f}%',
-                        transform=axins.transAxes, fontsize=8, fontweight='bold',
+            if outside_percent > 0.005:
+                axins.text(0.8, 0.75, fr'$>{100}\%: {outside_percent:.1f}\%$',
+                        transform=axins.transAxes, fontsize=18, fontweight='bold',
                         bbox=dict(facecolor='none', alpha=0.5, edgecolor='red'))
             
-            axins.axvline(x=10, color='green', linestyle='--', alpha=0.7)
-            axins.text(12, axins.get_ylim()[1] * 0.8, f'≤10%: {below_10_percent:.1f}%',
-                    fontsize=7, fontweight='bold',
-                    bbox=dict(facecolor='none', alpha=0.7, edgecolor='green'))
+            axins.axvline(x=20, color=green, linestyle='--', alpha=0.9)
+            axins.text(22, axins.get_ylim()[1] * 0.7, fr'$\le 20\%: {below_20_percent:.1f}\%$',
+                    fontsize=18, fontweight='bold',
+                    bbox=dict(facecolor='none', alpha=0.7, edgecolor=green))
             
             # Set labels and title
-            ax.set_xlabel(r'$\Pi_1$')
-            ax.set_ylabel(r'$\Pi_2$')
-            if dataset is not None:
-                ax.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law')
+            ax.set_xlabel(rf'$u_1y_1/\nu$')
+            ax.set_ylabel(rf'$u_py_1/\nu$')
         
 
         # Save or show plot
         if save_path is not None:
             case_name = dataset.replace("-", "")
-            fig.savefig(f"{save_path}/{case_name}_loglaw.pdf", dpi=300)
-            fig.savefig(f"{save_path}/{case_name}_loglaw.png", dpi=300)
+            plt.tight_layout()
+            fig.savefig(f"{save_path}/{case_name}_loglaw.pdf", dpi=300, bbox_inches='tight')
+            fig.savefig(f"{save_path}/{case_name}_loglaw.png", dpi=300, bbox_inches='tight')
             plt.close(fig)
         else:
 
@@ -477,7 +499,7 @@ class WallModelVisualization:
             abs_err: Whether to use absolute error
         """
         # Create figure
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=plot_size)
         
         # Extract flow parameters
         nu = unnormalized_inputs[:, 2]
@@ -549,6 +571,7 @@ class WallModelVisualization:
         # Save or show plot
         if save_path is not None:
             case_name = dataset.replace("-", "")
+            plt.tight_layout()
             plt.savefig(f"{save_path}/{case_name}_y_{fixed_height}.pdf", dpi=300, bbox_inches='tight')
             plt.savefig(f"{save_path}/{case_name}_y_{fixed_height}.png", dpi=200, bbox_inches='tight')
             plt.close()
@@ -586,14 +609,15 @@ class WallModelVisualization:
         ax.set_ylim(0, max(10, max(model_mean + model_std, loglaw_mean + loglaw_std)))
         
         # Set labels and title
-        ax.set_ylabel('Mean relative error (%)')
+        ax.set_ylabel(rf'Mean relative error (\%)')
         ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
         
         # Save or show plot
         if save_path is not None:
             case_name = dataset.replace("-", "")
-            plt.savefig(f"{save_path}/{case_name}_comparison.pdf", dpi=300)
-            plt.savefig(f"{save_path}/{case_name}_comparison.png", dpi=300)
+            plt.tight_layout()
+            plt.savefig(f"{save_path}/{case_name}_comparison.pdf", dpi=300, bbox_inches='tight')
+            plt.savefig(f"{save_path}/{case_name}_comparison.png", dpi=300, bbox_inches='tight')
             plt.close()
         else:
             fig_bar.show()

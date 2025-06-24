@@ -14,7 +14,47 @@ wall_model = WallModel.load_compact(model_path, device="cpu")
 
 training_datasets = ['CH','SYN','TBL_-4','TBL_-3','TBL_-2','TBL_-1','TBL_5','TBL_10','TBL_15','TBL_20', 'gaussian_2M_MAPG','gaussian_2M_FPG','gaussian_2M_APG','gaussian_2M_SEP', 'FS_ZPG','FS_FPG','FS_APG','bub_K']
 
-test_datasets = ['CH',
+test_datasets = [
+# Additional datasets
+ 'APG_Gasser',
+ 'backstep_inc',
+ 'swept_wing',
+ 'duct',
+ 'diffuser',
+ 'CH_rot',
+ 'curved_TBL_APG',
+ 'curved_TBL_FPG',
+ 'TBL_Volino_1',
+ 'TBL_Volino_2',
+ 'TBL_Volino_3',
+ 'TBL_Volino_4',
+ 'TBL_Volino_5',
+ 'TBL_Volino_6',
+ 'TBL_Volino_7',
+ 'TBL_Volino_8',
+ 'spinning_Driver_as1',
+ 'spinning_Driver_cs1',
+ 'spinning_Driver_cs0',
+ 'spinning_Driver_ds0',
+ 'spinning_Driver_ds1',
+ # Transition exp and DNS
+ 'transition_Coupland_t3am',
+ 'transition_Coupland_t3a',
+ 'transition_Coupland_t3b',
+ 'transition_Coupland_t3c1',
+ 'transition_Coupland_t3c2',
+ 'transition_Coupland_t3c3',
+ 'transition_Coupland_t3c4',
+ 'transition_Coupland_t3c5',
+ 'Transition',
+ 'strained_TBL_z-150',
+ 'strained_TBL_z-100',
+ 'strained_TBL_z0',
+ 'Concave_J',
+ # Transition exp and DNS
+ 'naca0012_laminar',
+# Previous datasets
+ 'CH',
  'SYN',
  'PIPE',
  'naca_0012',
@@ -30,6 +70,7 @@ test_datasets = ['CH',
  # 'convdiv_station_0','convdiv_station_1','convdiv_station_2','convdiv_station_3','convdiv_station_4',
  'round_step',
  'smoothramp',
+ 'axissym_BL',
  'TBL_-4',
  'TBL_-3',
  'TBL_-2',
@@ -75,12 +116,6 @@ test_datasets = ['CH',
  'FS_APG',
 ]
 
-test_datasets = ['Transition_laminar',
-'naca_0025_Laminar',
-'naca_0025_Transition',
-'naca_0025_Turbulent',
-                 ]
-
 # NOTE: The following code is used to add the station datasets to the test_datasets list
 for dataset in test_datasets:
     if dataset in STATION:
@@ -90,9 +125,13 @@ for dataset in test_datasets:
             test_datasets.insert(dataset_index+i+1, dataset + '_station_' + str(i))
 
 data = {}
+data_abs = {}
 
 BFM_error = []
 log_error = []
+BFM_abs_error = []
+log_abs_error = []
+
 abs_error = []
 
 for test_dataset in test_datasets:
@@ -126,6 +165,15 @@ for test_dataset in test_datasets:
         else:
             abs_error.append(False)
 
+        BFM_abs_err = results['metrics']['model']['mean_abs_error']
+        log_abs_err = results['metrics']['loglaw']['mean_abs_error']
+        if BFM_abs_err == 0 and log_abs_err == 0: # It means that no absolute error has been stored here
+            print('************')
+            print('No absolute error has been stored for this dataset')
+            print('************')
+
+        BFM_abs_error.append(BFM_abs_err)
+        log_abs_error.append(log_abs_err)
         BFM_error.append(BFM_err)
         log_error.append(log_err)
 
@@ -133,14 +181,23 @@ data['Test Case'] = [DATASET_PLOT_TITLE[test_dataset] for test_dataset in test_d
 data['BFM'] = BFM_error
 data['Log law'] = log_error
 data['abs_error'] = abs_error
-
 df = pd.DataFrame(data)
+
+data_abs['Test Case'] = [DATASET_PLOT_TITLE[test_dataset] for test_dataset in test_datasets]
+data_abs['BFM'] = BFM_abs_error
+data_abs['Log law'] = log_abs_error
+df_abs = pd.DataFrame(data_abs)
+
 
 # # Save testing results to CSV
 # Remove extension from model name
 model_name = model_name.split('.')[0]
-with open(f'./testing_results/{model_name}_append.csv', 'w') as f:
+with open(f'./testing_results/{model_name}.csv', 'w') as f:
     pd.DataFrame(data).to_csv(f, index=False)
+
+model_name = model_name.split('.')[0]
+with open(f'./testing_results/{model_name}_abs.csv', 'w') as f:
+    pd.DataFrame(data_abs).to_csv(f, index=False)
 
 #########################################
 # HTML Table Generation

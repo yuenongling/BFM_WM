@@ -126,6 +126,7 @@ for pos in POS:
     INPUT_TURB_FILES[f'gaussian_{RE}M_{pos}'] = f'./data/gaussian_{RE}M_data_{pos}.{EXT}'
     TURB_CASES.append(f'gaussian_{RE}M_{pos}')
     DATASET_PLOT_TITLE[f'gaussian_{RE}M_{pos}'] = f'Gaussian Bump: {RE}M {pos}'
+
 # NOTE: Gaussian data (1M)
 RE = 1
 POS = ['MAPG', 'FPG_concave', 'FPG_convex', 'APG_stable', 'APG', 'SEP']
@@ -216,6 +217,13 @@ for c in CASE:
     INPUT_TURB_FILES[f'TBL_Volino_{c}'] = f'./data/TBL_Volino_{c}_data.{EXT}'
     TURB_CASES.append(f'TBL_Volino_{c}')
     DATASET_PLOT_TITLE[f'TBL_Volino_{c}'] = f'Turbulent Boundary layer with first FPG and APG by Volino (2020), Case: {c}'
+
+# NOTE: TBL by Gungor(2024)
+CASE = [16, 22, 23]
+for c in CASE:
+    INPUT_TURB_FILES[f'TBL_Gungor_{c}'] = f'./data/TBL_Gungor_20{c}_data.{EXT}'
+    TURB_CASES.append(f'TBL_Gungor_{c}')
+    DATASET_PLOT_TITLE[f'TBL_Gungor_{c}'] = f'Turbulent Boundary layer by Gungor (2024), Case: {c}'
 
 # NOTE: Periodic Hill from Xiao et al. (2020)
 PH_CASES = ['X']
