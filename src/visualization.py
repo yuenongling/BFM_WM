@@ -31,7 +31,7 @@ plt.rcParams['xtick.labelsize'] = 24  # Adjust as desired
 plt.rcParams['ytick.labelsize'] = 24  # Adjust as desired
 plot_size = (12, 12)  # Default plot size
 markersize = 18  # Default marker size
-cmap = 'magma'
+cmap = 'viridis'
 
 class WallModelVisualization:
     """
@@ -182,8 +182,8 @@ class WallModelVisualization:
                 #     plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
                 
                 # Set labels and title
-                ax_abs.set_xlabel(r'$u_1y_1/\nu$')
-                ax_abs.set_ylabel(r'$u_py_1/\nu$')
+                ax_abs.set_xlabel(r'$u_1n_1/\nu$')
+                ax_abs.set_ylabel(r'$u_pn_1/\nu$')
                 if dataset is not None and save_path is None:
                     ax_abs.set_title(f'{self.dataset_labels.get(dataset, dataset)} using BFM \n (near separation) [Mean error: {np.mean(err_abs):.2e}]')
                 
@@ -287,8 +287,8 @@ class WallModelVisualization:
                     bbox=dict(facecolor='none', alpha=0.7, edgecolor=green))
             
             # Set labels and title
-            ax.set_xlabel(rf'$u_1y_1/\nu$')
-            ax.set_ylabel(rf'$u_py_1/\nu$')
+            ax.set_xlabel(rf'$u_1n_1/\nu$')
+            ax.set_ylabel(rf'$u_pn_1/\nu$')
             # if dataset is not None and save_path is None:
             #     ax.set_title(f'{self.dataset_labels.get(dataset, dataset)}')
         
@@ -378,8 +378,8 @@ class WallModelVisualization:
                 #     plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
                 
                 # Set labels and title
-                ax_abs.set_xlabel(r'$u_1y_1/\nu$')
-                ax_abs.set_ylabel(r'$u_py_1/\nu$')
+                ax_abs.set_xlabel(r'$u_1n_1/\nu$')
+                ax_abs.set_ylabel(r'$u_pn_1/\nu$')
                 if dataset is not None and save_path is None:
                     ax_abs.set_title(f'{self.dataset_labels.get(dataset, dataset)} using Log Law \n (near separation) [Mean error: {np.mean(err_abs):.2e}]')
                 
@@ -452,8 +452,8 @@ class WallModelVisualization:
                     bbox=dict(facecolor='none', alpha=0.7, edgecolor=green))
             
             # Set labels and title
-            ax.set_xlabel(rf'$u_1y_1/\nu$')
-            ax.set_ylabel(rf'$u_py_1/\nu$')
+            ax.set_xlabel(rf'$u_1n_1/\nu$')
+            ax.set_ylabel(rf'$u_pn_1/\nu$')
         
 
         # Save or show plot

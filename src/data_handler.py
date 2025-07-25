@@ -245,18 +245,17 @@ class WallModelDataHandler:
                 # --- END NEW SECTION ---
 
                 # --- Filtering (using DataFrames) ---
-                upy_max = data_config.get('upy', 1.0)
+                upy_max = data_config.get('upy', 0.15)
                 if upy_max < 1.0:
-                    # (Filtering logic using DataFrames remains the same as previous version)
                     print(f"Filtering {case} with upy_max={upy_max}...")
                     if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
                         y_vals = unnormalized_for_filter['y'].values
                         delta_vals = flow_type_for_processing['delta'].astype(float).values
-                        mask = y_vals <= upy_max * delta_vals
+                        mask = y_vals <= 0.15 * delta_vals
+                        print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                         all_data_inputs_df = all_data_inputs_df[mask]
                         outputs_for_processing = outputs_for_processing[mask]
                         flow_type_for_processing = flow_type_for_processing[mask]
-                        print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                     else:
                         print(f"  Warning: Cannot filter by 'upy'. Missing 'y' in unnormalized or 'delta' in flow_type.")
 
@@ -451,7 +450,7 @@ class WallModelDataHandler:
                 delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
                 
                 # Filter out points where y exceeds upy_max * delta
-                mask = y <= upy_max * delta
+                mask = y <= 0.25 * delta
                 
                 # Apply mask to all data arrays
                 inputs_df = inputs_df[mask]
@@ -460,7 +459,16 @@ class WallModelDataHandler:
                 flow_type = flow_type[mask]
                 
                 print(50 * '-')
-                print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points using up_y={upy_max}")
+                print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points")
+
+                # Filter out points where y exceeds upy_max * delta
+                mask = y <= 0.15 * delta
+                
+                # Apply mask to all data arrays
+                inputs_df = inputs_df[mask]
+                outputs = outputs[mask]
+                unnormalized_inputs = unnormalized_inputs[mask]
+                flow_type = flow_type[mask]
             
             # Select input columns based on input_scaling
             selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
@@ -473,7 +481,7 @@ class WallModelDataHandler:
             else:
                 inputs = inputs_df[selected_columns].values
             
-            print(f"Loaded external dataset {dataset_key} with {len(inputs)} samples, input scaling mode {input_scaling}, input dims {inputs.shape[1]}")
+            print(f"Loaded external dataset {dataset_key} with input scaling mode {input_scaling}, input dims {inputs.shape[1]}")
             return inputs, outputs, unnormalized_inputs, flow_type
             
         except Exception as e:

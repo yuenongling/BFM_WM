@@ -28,8 +28,8 @@ umean_bfm = umean_bfm / np.max(umean_bfm)
 # umean_bfmbfm = umean_bfmbfm / np.max(umean_bfmbfm)
 
 fig, ax = plt.subplots(figsize=(8, 6))
-ax.plot(umean_eqwm, y_eqwm, '-x', label="EQWM", color='blue', linewidth=2)
-ax.plot(umean_bfm, y_bfm, '-o', label="BFM", color='red', linewidth=2)
+ax.plot(umean_eqwm, y_eqwm, 'x', label="EQWM", color='blue', linewidth=2)
+ax.plot(umean_bfm, y_bfm, 'o', label="BFM", color='red', linewidth=2)
 # ax.plot(umean_bfmbfm, y_bfmbfm, '-o', label="BFM+BFM", color='green', linewidth=2)
 ax.plot(u_dns, y_dns, '--', label="DNS", color='black', linewidth=1)
 
