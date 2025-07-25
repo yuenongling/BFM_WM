@@ -16,6 +16,7 @@ import Levenshtein # This is to find similar dataset names
 # --- Read in command line arguments ---
 model_path = sys.argv[1] if len(sys.argv) > 1 else None
 save_mode = int(sys.argv[2]) if len(sys.argv) > 2 else False
+masked_threshold  = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0002
 #
 
 def get_closest_matches(invalid_key, valid_keys, num_suggestions=10):
@@ -45,7 +46,7 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
     results = wall_model.test_external_dataset(
         dataset_key=test_dataset,
         tauw=True,
-        # mask_threshold=2e-4,
+        mask_threshold=masked_threshold,
         save_path=save_path,
         LogTransform=wall_model.config.get('training', {}).get('LogTransform', False),
     )
