@@ -42,7 +42,7 @@ class WallModelDataHandler:
     Handles data loading, preprocessing, and partitioning for wall models
     """
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, UPY_MAX_FIX: float = 0.15):
         """Initialize with configuration"""
         self.config = config
         self.device = torch.device(f"cuda:{config.get('general', {}).get('GpuNum', -1)}"
@@ -65,6 +65,9 @@ class WallModelDataHandler:
         self.output_train = None
         self.input_valid = None
         self.output_valid = None
+
+        # NOTE: YN -> Fix upy_max for consistent plotting
+        self.UPY_MAX_FIX = UPY_MAX_FIX
         
     def read_data(self, data_sources: Optional[Dict] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -450,7 +453,11 @@ class WallModelDataHandler:
                 delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
                 
                 # Filter out points where y exceeds upy_max * delta
-                mask = y <= 0.25 * delta
+                # NOTE: YN -> If UPY_MAX_FIX is set and less than 1.0, use it to apply consistent filtering
+                if self.UPY_MAX_FIX < 1.0:
+                    mask = y <= self.UPY_MAX_FIX * delta
+                else:
+                    mask = y <= upy_max * delta
                 
                 # Apply mask to all data arrays
                 inputs_df = inputs_df[mask]
@@ -460,15 +467,6 @@ class WallModelDataHandler:
                 
                 print(50 * '-')
                 print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points")
-
-                # Filter out points where y exceeds upy_max * delta
-                mask = y <= 0.15 * delta
-                
-                # Apply mask to all data arrays
-                inputs_df = inputs_df[mask]
-                outputs = outputs[mask]
-                unnormalized_inputs = unnormalized_inputs[mask]
-                flow_type = flow_type[mask]
             
             # Select input columns based on input_scaling
             selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
