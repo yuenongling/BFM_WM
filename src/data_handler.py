@@ -296,7 +296,6 @@ class WallModelDataHandler:
                             inputs_selected_df[col] = np.sign(inputs_selected_df[col]) * np.log1p(np.abs(inputs_selected_df[col]))
 
                         print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
-                        breakpoint()
                 else:
                     print("No near_wall target filtering applied.")
 

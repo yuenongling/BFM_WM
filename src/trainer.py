@@ -540,6 +540,9 @@ class WallModelTrainer:
             # Whether to do log transformation
             'log_transform': self.config.get('training', {}).get('LogTransform', 0),
 
+            # Whether to focus solely on near-wall region
+            'near_wall': self.config.get('near_wall_threshold', -1.0),
+
             # Normalization parameters (essential for inference)
             # 'input_mean': self.input_mean,
             # 'input_std': self.input_std,
