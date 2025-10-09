@@ -275,6 +275,31 @@ class WallModelDataHandler:
                     print(f"Warning: Dataset {case} (HDF5 source) is missing required columns for input_scaling={input_scaling}. Required: {selected_columns}. Available: {list(available_cols)}. Skipping dataset.")
                     continue
 
+                # --- Secondary filtering (if needed) ---
+                near_wall = data_config.get('near_wall_threshold', -1.0)
+                # It seems that we only need to filter based on u1_y_over_nu
+                if near_wall > 0.0:
+                    if 'u1_y_over_nu' not in inputs_selected_df.columns:
+                        raise ValueError(f"Column 'u1_y_over_nu' required for near_wall filtering not found in dataset {case}.")
+                    else:
+                        # Only concern data that has low u1_y_over_nu and u2_y_over_nu values
+                        mask1 = inputs_selected_df['u1_y_over_nu'] <= near_wall
+                        mask2 = inputs_selected_df['u1_y_over_nu'] > 0.0
+                        mask  = mask1 & mask2
+
+                        outputs_for_processing = outputs_for_processing[mask]
+                        flow_type_for_processing = flow_type_for_processing[mask]
+                        inputs_selected_df = inputs_selected_df[mask]
+
+                        # Use log scale for near wall filtering
+                        for col in selected_columns:
+                            inputs_selected_df[col] = np.sign(inputs_selected_df[col]) * np.log1p(np.abs(inputs_selected_df[col]))
+
+                        print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
+                        breakpoint()
+                else:
+                    print("No near_wall target filtering applied.")
+
                 # --- Convert final selections to NumPy for concatenation ---
                 inputs_np = inputs_selected_df.values
                 outputs_np = outputs_for_processing.values
