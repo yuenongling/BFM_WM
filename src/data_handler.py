@@ -458,56 +458,76 @@ class WallModelDataHandler:
         if not os.path.exists(file_path):
             raise ValueError(f"Dataset {dataset_key} not found or file doesn't exist. Tried path: {file_path}")
         
-        try:
-            import pandas as pd
+        # Read each component from HDF5
+        inputs_df = pd.read_hdf(file_path, key='inputs')
+        outputs = pd.read_hdf(file_path, key='output').values
+        unnormalized_inputs = pd.read_hdf(file_path, key='unnormalized_inputs').values
+        flow_type = pd.read_hdf(file_path, key='flow_type').values
+        
+        # Apply optional filtering based on config
+        upy_max = config.get('data', {}).get('upy', 1.0)  # Upper y value for input
+        
+        # Filter based on upy if needed
+        if upy_max < 1.0:
+            # First column of unnormalized_inputs contains y values relative to delta
+            y = unnormalized_inputs[:, 0]
+            delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
             
-            # Read each component from HDF5
-            inputs_df = pd.read_hdf(file_path, key='inputs')
-            outputs = pd.read_hdf(file_path, key='output').values
-            unnormalized_inputs = pd.read_hdf(file_path, key='unnormalized_inputs').values
-            flow_type = pd.read_hdf(file_path, key='flow_type').values
+            # Filter out points where y exceeds upy_max * delta
+            # NOTE: YN -> If UPY_MAX_FIX is set and less than 1.0, use it to apply consistent filtering
+            if self.UPY_MAX_FIX < 1.0:
+                mask = y <= self.UPY_MAX_FIX * delta
+            else:
+                mask = y <= upy_max * delta
             
-            # Apply optional filtering based on config
-            upy_max = config.get('data', {}).get('upy', 1.0)  # Upper y value for input
+            # Apply mask to all data arrays
+            inputs_df = inputs_df[mask]
+            outputs = outputs[mask]
+            unnormalized_inputs = unnormalized_inputs[mask]
+            flow_type = flow_type[mask]
             
-            # Filter based on upy if needed
-            if upy_max < 1.0:
-                # First column of unnormalized_inputs contains y values relative to delta
-                y = unnormalized_inputs[:, 0]
-                delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
-                
-                # Filter out points where y exceeds upy_max * delta
-                # NOTE: YN -> If UPY_MAX_FIX is set and less than 1.0, use it to apply consistent filtering
-                if self.UPY_MAX_FIX < 1.0:
-                    mask = y <= self.UPY_MAX_FIX * delta
-                else:
-                    mask = y <= upy_max * delta
-                
-                # Apply mask to all data arrays
+            print(50 * '-')
+            print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points")
+        
+        # Select input columns based on input_scaling
+        selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
+
+        # --- Secondary filtering (if needed) ---
+        near_wall = config.get('data', {}).get('near_wall_threshold', -1.0)
+        # It seems that we only need to filter based on u1_y_over_nu
+        if near_wall > 0.0:
+            if 'u1_y_over_nu' not in inputs_df.columns:
+                raise ValueError(f"Column 'u1_y_over_nu' required for near_wall filtering not found in dataset {case}.")
+            else:
+                # Only concern data that has low u1_y_over_nu and u2_y_over_nu values
+                mask1 = inputs_df['u1_y_over_nu'] <= near_wall
+                mask2 = inputs_df['u1_y_over_nu'] > 0.0
+                mask  = mask1 & mask2
+
                 inputs_df = inputs_df[mask]
                 outputs = outputs[mask]
                 unnormalized_inputs = unnormalized_inputs[mask]
                 flow_type = flow_type[mask]
-                
-                print(50 * '-')
-                print(f"Filtered external dataset {dataset_key}: {len(mask)} -> {len(inputs_df)} points")
-            
-            # Select input columns based on input_scaling
-            selected_columns = COLUMN_MAP.get(input_scaling, COLUMN_MAP[1])
-            
-            # Verify all required columns exist
-            if not all(col in inputs_df.columns for col in selected_columns):
-                print(f"Warning: Not all required columns {selected_columns} found in dataset. Available columns: {inputs_df.columns}")
-                # Return None if columns are missing
-                return None, None, None, None
-            else:
-                inputs = inputs_df[selected_columns].values
-            
-            print(f"Loaded external dataset {dataset_key} with input scaling mode {input_scaling}, input dims {inputs.shape[1]}")
-            return inputs, outputs, unnormalized_inputs, flow_type
-            
-        except Exception as e:
-            raise ValueError(f"Error loading dataset {dataset_key} from {file_path}: {str(e)}")
+
+                # Use log scale for near wall filtering
+                for col in selected_columns:
+                    inputs_df[col] = np.sign(inputs_df[col]) * np.log1p(np.abs(inputs_df[col]))
+
+                print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_df)} points")
+        else:
+            print("No near_wall target filtering applied.")
+
+        
+        # Verify all required columns exist
+        if not all(col in inputs_df.columns for col in selected_columns):
+            print(f"Warning: Not all required columns {selected_columns} found in dataset. Available columns: {inputs_df.columns}")
+            # Return None if columns are missing
+            return None, None, None, None
+        else:
+            inputs = inputs_df[selected_columns].values
+        
+        print(f"Loaded external dataset {dataset_key} with input scaling mode {input_scaling}, input dims {inputs.shape[1]}")
+        return inputs, outputs, unnormalized_inputs, flow_type
     
     def _prepare_weights_custom(self) -> torch.Tensor:
         """

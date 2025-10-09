@@ -431,6 +431,7 @@ class WallModel(WallModelBase):
                             compare_with_loglaw: bool = True,
                             purpose: int = 0,
                             LogTransform: bool = False,
+                            near_wall: float = -1.0
                               ) -> Dict[str, Any]:
         """
         Test the model on an external dataset
@@ -447,6 +448,7 @@ class WallModel(WallModelBase):
             save_path: Optional path to save plots
             compare_with_loglaw: Whether to compare with log law baseline
             purpose: 0 -> testing prediction, 1 -> plot input space
+            near_wall: Threshold for u1*y/nu to consider as near-wall region
             
         Returns:
             Dictionary of test results
@@ -685,6 +687,10 @@ class WallModel(WallModelBase):
                     abs_err=abs_err
                 )
                 return results
+
+            # Convert back from log scale if needed
+            if near_wall > 0.0:
+                inputs = np.exp(inputs) - 1
             
             # Plot error scatter
             max_err, mean_abs_err, std_abs_err, mean_rel_err, std_rel_err = self.visualizer.plot_results_scatter_error(

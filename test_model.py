@@ -49,6 +49,7 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
         mask_threshold=masked_threshold,
         save_path=save_path,
         LogTransform=wall_model.config.get('training', {}).get('LogTransform', False),
+        near_wall=wall_model.config.get('data', {}).get('near_wall_threshold', -1.0)
     )
 
     return results, wall_model
