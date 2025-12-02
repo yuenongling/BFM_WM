@@ -351,12 +351,16 @@ class WallModel(WallModelBase):
         # Mark as trained
         self.is_trained = True
     
-    def test(self, plot: bool = True, save_path: Optional[str] = None) -> Tuple[float, float]:
+    def test(self, 
+             plot: bool = True, 
+             plot_frequency: bool = True, 
+             save_path: Optional[str] = None) -> Tuple[float, float]:
         """
         Test the model on training and validation data
         
         Args:
             plot: Whether to plot the results
+            plot_frequency: Whether to plot frequency contours
             save_path: Optional path to save plots
             
         Returns:
@@ -407,6 +411,15 @@ class WallModel(WallModelBase):
                 outputs_valid_predict,
                 save_path=save_path
             )
+
+        if plot_frequency:
+            self.visualizer.plot_training_results_2D_contour(
+                output_train_np,
+                outputs_train_predict,
+                output_valid_np,
+                outputs_valid_predict,
+                save_path=save_path
+            )
             
             # # Plot loss history if available
             # if hasattr(self, 'train_loss_history') and hasattr(self, 'valid_loss_history'):
@@ -431,7 +444,8 @@ class WallModel(WallModelBase):
                             compare_with_loglaw: bool = True,
                             purpose: int = 0,
                             LogTransform: bool = False,
-                            near_wall: float = -1.0
+                            near_wall: float = -1.0,
+                            SaveResults: bool = False,
                               ) -> Dict[str, Any]:
         """
         Test the model on an external dataset
@@ -754,6 +768,25 @@ class WallModel(WallModelBase):
                     'std_abs_error': std_abs_err_log,
                     # 'max_error': max_err_log
                 }
+
+                if SaveResults:
+                    # Save results to a pickle file if requested
+                    # Save:
+                    #     1. log_predictions
+                    #     2. outputs_predict
+                    #     3. unnormalized_inputs
+                    #     4. flow_type
+                    #
+                    # Save at ./paper_plots/results_for_plotting_spatial/{dataset_key}_results.pkl
+                    results_to_save = { 
+                        'log_predictions': log_predictions,
+                        'model_predictions': outputs_predict,
+                        'true_outputs': outputs,
+                        'unnormalized_inputs': unnormalized_inputs,
+                        'flow_type': flow_type
+                    }
+                    with open(f'./paper_plots/results_for_plotting_spatial/{dataset_key}_results.pkl', 'wb') as f:
+                        pkl.dump(results_to_save, f)
                 
                 # Plot comparison bar chart
                 self.visualizer.plot_comparison_bar_chart(

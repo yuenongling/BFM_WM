@@ -137,7 +137,7 @@ with torch.no_grad():
 
 fig = plt.figure(figsize=(8, 6))
 ax = fig.add_subplot(111, projection='3d')
-surf = ax.plot_surface(x1_mesh.numpy(), x2_mesh.numpy(), output_xy_vary, cmap='viridis', edgecolor='none')
+surf = ax.plot_surface(x1_mesh.numpy(), x2_mesh.numpy(), output_xy_vary, cmap='viridis', edgecolor='none', rasterized=True)
 fig.colorbar(surf)
 setup_plot(ax, f'Output vs Inputs 1,2 (Input 3 fixed at {fixed_val_z_2d:.1f})', XLABEL, YLABEL, OUTLABEL)
 plt.show()
@@ -166,7 +166,7 @@ def plot_x_z_yfix(fixed_val_y_2d=0.0, save_fig=False):
 
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_surface(x1_mesh_xz.numpy(), x3_mesh_xz.numpy(), output_xz_vary, cmap='viridis', edgecolor='none', alpha=0.9)
+    surf = ax.plot_surface(x1_mesh_xz.numpy(), x3_mesh_xz.numpy(), output_xz_vary, cmap='viridis', edgecolor='none', rasterized=True)
     fig.colorbar(surf, orientation='horizontal', location='top', fraction=0.05, label=OUTLABEL)
     setup_plot(ax, f'Output vs Inputs 1,3 (Input 2 fixed at {fixed_val_y_2d:.1f})', XLABEL, ZLABEL, OUTLABEL)
     z_level_for_scatter = 0
@@ -188,7 +188,7 @@ def plot_x_z_yfix(fixed_val_y_2d=0.0, save_fig=False):
     ax.view_init(elev=25, azim=-65) # Top-down view
 
     fig_2d, ax_2d = plt.subplots(figsize=(8, 8))
-    ax_2d.contourf(x1_mesh_xz.numpy(), x3_mesh_xz.numpy(), output_xz_vary, levels=50, cmap='viridis', antialiased=True, linestyles='None')
+    ax_2d.contourf(x1_mesh_xz.numpy(), x3_mesh_xz.numpy(), output_xz_vary, levels=50, cmap='viridis', antialiased=True, linestyles='None', rasterized=True)
     ax_2d.set_xlim(x_min, x_max)
     ax_2d.set_ylim(z_min, z_max)
     ax_2d.set_xlabel(XLABEL)

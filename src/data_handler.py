@@ -298,6 +298,20 @@ class WallModelDataHandler:
                         print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
                 else:
                     print("No near_wall target filtering applied.")
+                    print("But we need to exclude some near-wall points that are not used for training.")
+                    # Only concern data that has low u1_y_over_nu and u2_y_over_nu values
+                    mask1 = inputs_selected_df['u1_y_over_nu'] > 1000
+                    mask  = mask1
+
+                    outputs_for_processing = outputs_for_processing[mask]
+                    flow_type_for_processing = flow_type_for_processing[mask]
+                    inputs_selected_df = inputs_selected_df[mask]
+
+                    # # Use log scale for near wall filtering
+                    # for col in selected_columns:
+                    #     inputs_selected_df[col] = np.sign(inputs_selected_df[col]) * np.log1p(np.abs(inputs_selected_df[col]))
+
+                    print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
 
                 # --- Convert final selections to NumPy for concatenation ---
                 inputs_np = inputs_selected_df.values

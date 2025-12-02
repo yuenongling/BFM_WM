@@ -119,7 +119,7 @@ for re in RE:
 # NOTE: Gaussian data (2M)
 RE = 2
 POS = ['MAPG', 'FPG', 'APG', 'SEP']
-INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data.{EXT}'
+INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data_ALL.{EXT}'
 TURB_CASES.append(f'gaussian_{RE}M')
 DATASET_PLOT_TITLE[f'gaussian_{RE}M'] = f'Gaussian Bump: {RE}M'
 for pos in POS:
@@ -130,7 +130,7 @@ for pos in POS:
 # NOTE: Gaussian data (1M)
 RE = 1
 POS = ['MAPG', 'FPG_concave', 'FPG_convex', 'APG_stable', 'APG', 'SEP']
-INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data.{EXT}'
+INPUT_TURB_FILES[f'gaussian_{RE}M'] = f'./data/gaussian_{RE}M_data_ALL.{EXT}'
 TURB_CASES.append(f'gaussian_{RE}M')
 DATASET_PLOT_TITLE[f'gaussian_{RE}M'] = f'Gaussian Bump: {RE}M'
 for pos in POS:
@@ -169,7 +169,7 @@ for rg in REGION:
     DATASET_PLOT_TITLE[f'naca_0025_{rg}'] = f'NACA_0025: {rg} region'
 
 # NOTE: Falkner-Skan laminar boundary layer
-LBL_CASES = ['ZPG','FPG','APG', 'ALL']
+LBL_CASES = ['ZPG','FPG','APG', 'ALL','m_a0p08','m_a0p025', 'a0p6']
 for case in LBL_CASES:
     INPUT_TURB_FILES[f'FS_{case}'] = f'./data/FS_{case}_data.{EXT}'
     TURB_CASES.append(f'FS_{case}')

@@ -4,7 +4,10 @@ Visualization functionality for wall models
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.lines import Line2D
+
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import os
 from typing import Dict, Tuple, List, Optional, Union, Any
@@ -46,14 +49,201 @@ class WallModelVisualization:
             dataset_labels: Optional dictionary mapping dataset keys to human-readable labels
         """
         self.dataset_labels = dataset_labels or {}
+
+    def plot_training_results_2D_contour(self,
+                                            output_train: np.ndarray,
+                                            outputs_train_predict: np.ndarray,
+                                            output_valid: np.ndarray,
+                                            outputs_valid_predict: np.ndarray,
+                                            save_path: Optional[str] = None,
+                                            ) -> None:
+
+        """
+        Plots a simple 2D contour of the regression results.
+
+        Args:
+            output_train: True outputs for training data.
+            outputs_train_predict: Predicted outputs for training data.
+            output_valid: True outputs for validation data.
+            outputs_valid_predict: Predicted outputs for validation data.
+            save_path: Optional path to save the figure.
+        """
+
+        # --- Data Preparation ---
+        if torch.is_tensor(output_train):
+            output_train = output_train.cpu().detach().numpy()
+        if torch.is_tensor(outputs_train_predict):
+            outputs_train_predict = outputs_train_predict.cpu().detach().numpy()
+        if torch.is_tensor(output_valid):
+            output_valid = output_valid.cpu().detach().numpy()
+        if torch.is_tensor(outputs_valid_predict):
+            outputs_valid_predict = outputs_valid_predict.cpu().detach().numpy()
         
-    
+        r2_train = r2_score(output_train, outputs_train_predict)
+        r2_valid = r2_score(output_valid, outputs_valid_predict)
+
+        plt.rcParams.update({
+            "text.usetex": True,
+            "text.latex.preamble": r"\usepackage{amsmath}",
+        })
+
+        # --- Figure and Plotting Setup ---
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+        
+        min_val = min(output_train.min(), outputs_train_predict.min(), output_valid.min(), outputs_valid_predict.min())
+        max_val = max(output_train.max(), outputs_train_predict.max(), output_valid.max(), outputs_valid_predict.max())
+
+        min_val = 0
+        max_val = 600
+
+        plot_range = [min_val, max_val]
+        bins = np.linspace(min_val, max_val, 501)
+
+        plot_data = [
+            (output_train, outputs_train_predict, axes[0], f'Training set; $R^2 = {r2_train:.2f}$'),
+            (output_valid, outputs_valid_predict, axes[1], f'Validation set; $R^2 = {r2_valid:.2f}$')
+        ]
+
+        def get_contour_levels(H, percentages):
+            """
+            Calculates the PMF values that enclose a given percentage of the data.
+            H: 2D array of PMF values (in percent).
+            percentages: A list of percentages to enclose (e.g., [0.10, 0.50, 0.95]).
+            Returns: A sorted list of PMF values for the contour lines.
+            """
+            # Sort the PMF values in descending order
+            H_flat = np.sort(H.flatten())[::-1]
+            
+            # Calculate the cumulative sum of the PMF
+            H_cumsum = np.cumsum(H_flat)
+            
+            # Find the PMF levels corresponding to the percentages
+            # The total sum of H_pmf_percent is 100
+            levels = []
+            for p in percentages:
+                target_sum = p * 100
+                # Find the index where the cumulative sum passes the target
+                idx = np.searchsorted(H_cumsum, target_sum)
+                if idx < len(H_flat):
+                    levels.append(H_flat[idx])
+                else: # Failsafe for the 100% level
+                    levels.append(H_flat[-1])
+                    
+            return sorted(levels) # Return sorted levels (from outer to inner contour)
+
+# --- Main Plotting Loop (Corrected) ---
+        from scipy.ndimage import gaussian_filter
+
+        # Override some matplotlib settings for better aesthetics
+        plt.style.use('~/Codes/matplotlibstyle/mystyle.mplstyle')
+        plt.rcParams.update({
+            "text.usetex": True,
+        })
+        plt.rcParams['axes.labelsize'] = 16  # Adjust as desired
+        plt.rcParams['xtick.labelsize'] = 13  # Adjust as desired
+        plt.rcParams['ytick.labelsize'] = 13  # Adjust as desired
+        plt.rcParams['legend.fontsize'] = 16  # Adjust as desired
+        for x_data, y_data, ax, title in plot_data:
+            # A. Compute the 2D histogram and convert to PMF in percentage
+            H_counts, xedges, yedges = np.histogram2d(x_data, y_data, bins=bins)
+            H_counts = gaussian_filter(H_counts, sigma=8.0)
+
+            H_pmf_percent = (H_counts / H_counts.sum()) * 100
+            
+            # B. Calculate the contour levels for 10%, 50%, and 95% enclosures
+            enclosure_percentages = [0.10, 0.50, 0.9]
+            levels = get_contour_levels(H_pmf_percent, enclosure_percentages)
+            
+            # C. Create meshgrid for plotting
+            X, Y = np.meshgrid((xedges[:-1] + xedges[1:]) / 2, (yedges[:-1] + yedges[1:]) / 2)
+            
+            # D. Plot the contours
+            #    1. A light, filled contour for background context
+            # ax.contourf(X, Y, H_pmf_percent.T, cmap='Blues', levels=10, alpha=0.5)
+            
+            #    2. The specific, sharp contour lines for data enclosure
+            #       CORRECTION: The order of colors/styles now matches the sorted 'levels' array.
+            #       levels is [level_for_95, level_for_50, level_for_10] (outer to inner)
+            #       So, colors should also be [color_for_95, color_for_50, color_for_10]
+            colors = [red, blue, green]
+            linestyles = ['solid', 'solid', 'solid']
+            ax.contour(X, Y, H_pmf_percent.T, levels=levels, colors=colors, linestyles=linestyles, linewidths=2)
+            
+            # E. Add the ideal 1:1 diagonal line
+            ax.plot(plot_range, plot_range, 'k--', alpha=0.8, label=r'Ideal')
+
+            # F. Formatting and Custom Legend
+            ax.set_title(title, fontsize=22)
+            ax.set_xlabel(r'True $\Pi^*_{o}$', fontsize=24)
+            ax.set_ylabel(r'Predicted $\Pi^*_{o}$', fontsize=24)
+            ax.set_xlim(plot_range)
+            ax.set_ylim(plot_range)
+            ax.set_xticks(np.linspace(min_val, max_val, 4))
+            ax.set_yticks(np.linspace(min_val, max_val, 4))
+            # ax.set_aspect('equal', adjustable='box')
+            # ax.grid(True, linestyle='--', alpha=0.6)
+            
+            # Create custom legend entries for the contours
+            # CORRECTION: The order here now correctly matches the colors and percentages
+            from matplotlib.lines import Line2D
+            legend_elements = [
+                Line2D([0], [0], color=colors[0], lw=2, ls=linestyles[0], label=fr'{int(enclosure_percentages[2]*100)}\%'), # Red for 95%
+                Line2D([0], [0], color=colors[1], lw=2, ls=linestyles[1], label=fr'{int(enclosure_percentages[1]*100)}\%'), # Black for 50%
+                Line2D([0], [0], color=colors[2], lw=2, ls=linestyles[2], label=fr'{int(enclosure_percentages[0]*100)}\%'), # Green for 10%
+                Line2D([0], [0], color='k', ls='--', alpha=0.8, label=f'Ideal')]
+            ax.legend(handles=legend_elements, loc='upper left')
+
+        
+        # --- Main Plotting Loop ---
+        # for x_data, y_data, ax, title in plot_data:
+        #     # A. Compute the 2D histogram and convert to PMF in percentage
+        #     #    1. Get the raw counts in each bin
+        #     H_counts, xedges, yedges = np.histogram2d(x_data, y_data, bins=bins)
+        #     #    2. Normalize by the total number of points and multiply by 100 for percentage
+        #     H_pmf_percent = (H_counts / H_counts.sum()) * 100
+        #
+        #     breakpoint()
+        #
+        #     # B. Create meshgrid for plotting
+        #     X, Y = np.meshgrid((xedges[:-1] + xedges[1:]) / 2, (yedges[:-1] + yedges[1:]) / 2)
+        #
+        #     # C. Plot the filled contours of the PMF
+        #     #    H.T is used because contourf expects rows as Y and columns as X
+        #     contour_plot = ax.contourf(X, Y, H_pmf_percent.T, cmap='Blues', levels=15)
+        #
+        #     # D. Add a colorbar to interpret the percentage
+        #     fig.colorbar(contour_plot, ax=ax, label='Data Percentage (%)')
+        #
+        #     # E. Add the ideal 1:1 diagonal line
+        #     ax.plot(plot_range, plot_range, 'r--', alpha=0.8, label='Ideal (y=x)')
+        #
+        #     # F. Formatting
+        #     ax.set_title(title)
+        #     ax.set_xlabel(r'True $\Pi_{\text{out}}$')
+        #     ax.set_ylabel(r'Predicted $\Pi_{\text{out}}$')
+        #     ax.set_xlim(plot_range)
+        #     ax.set_ylim(plot_range)
+        #     ax.set_aspect('equal', adjustable='box')
+        #     ax.grid(True, linestyle='--', alpha=0.6)
+        #     ax.legend()
+
+        # --- Finalize and Show/Save ---
+        plt.tight_layout()
+        if save_path:
+            save_file = save_path + '/regression_contour'
+            plt.savefig(save_file+'.pdf', dpi=100, bbox_inches='tight')
+            plt.savefig(save_file+'.png', dpi=100, bbox_inches='tight')
+            print(f"Figure saved to {save_file}.png/pdf")
+        else:
+            plt.show() 
+
     def plot_training_results(self, 
                              output_train: np.ndarray, 
                              outputs_train_predict: np.ndarray,
                              output_valid: np.ndarray,
                              outputs_valid_predict: np.ndarray,
-                             save_path: Optional[str] = None) -> None:
+                             save_path: Optional[str] = None,
+                              ) -> None:
         """
         Plot the regression results for training and validation data
         
@@ -94,8 +284,8 @@ class WallModelVisualization:
         # Add labels and diagonal line
         for a in ax:
             xlim = a.get_xlim()
-            a.set_xlabel(r'True $\Pi_{\text{out}}$')
-            a.set_ylabel(r'Predicted $\Pi_{\text{out}}$')
+            a.set_xlabel(r'True $\Pi_{\mathrm{out}}$')
+            a.set_ylabel(r'Predicted $\Pi_{\mathrm{out}}$')
             a.plot(xlim, xlim, 'r--')
             a.legend()
         
@@ -373,7 +563,7 @@ class WallModelVisualization:
                 # Plot separation region results
                 fig_abs, ax_abs = plt.subplots(figsize=plot_size)
                 sc_abs = ax_abs.scatter(inputs_sep[:, 0], inputs_sep[:, 1], c=err_abs, rasterized=True, # edgecolors=black, linewidths=0.05,
-                                       cmap=cmap, s=markersize, vmax=max_model_err)
+                                       cmap=cmap, s=markersize, vmin=0, vmax=max_model_err)
                 # if save_path is None:
                 #     plt.colorbar(sc_abs, ax=ax_abs, label='Absolute Error', orientation='vertical')
                 

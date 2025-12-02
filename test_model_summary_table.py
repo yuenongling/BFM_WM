@@ -16,6 +16,8 @@ training_datasets = ['CH','SYN','TBL_-4','TBL_-3','TBL_-2','TBL_-1','TBL_5','TBL
 
 test_datasets = [
 # Additional datasets
+ 'gaussian_2M',
+ 'gaussian_1M',
  'APG_Gasser',
  'backstep_inc',
  'swept_wing',
@@ -78,7 +80,7 @@ test_datasets = [
  'TBL_5',
  'TBL_10',
  'TBL_15',
- # 'TBL_20',
+ 'TBL_20',
  'apg_b1n',
  'apg_b2n',
  'apg_m13n',
@@ -88,18 +90,17 @@ test_datasets = [
  # 'aairfoil_10M_station_0','aairfoil_10M_station_1','aairfoil_10M_station_2','aairfoil_10M_station_3','aairfoil_10M_station_4','aairfoil_10M_station_5','aairfoil_10M_station_6','aairfoil_10M_station_7',
  'aairfoil_2M',
  # 'aairfoil_2M_station_0','aairfoil_2M_station_1','aairfoil_2M_station_2','aairfoil_2M_station_3','aairfoil_2M_station_4','aairfoil_2M_station_5',
- 'gaussian_2M_MAPG',
- # 'gaussian_2M_MAPG_station_0','gaussian_2M_MAPG_station_1',
- 'gaussian_2M_FPG',
- # 'gaussian_2M_FPG_station_0','gaussian_2M_FPG_station_1',
- 'gaussian_2M_APG',
- # 'gaussian_2M_APG_station_0','gaussian_2M_APG_station_1',
- 'gaussian_2M_SEP',
- 'gaussian_1M_MAPG',
- 'gaussian_1M_FPG_concave',
- 'gaussian_1M_FPG_convex',
- 'gaussian_1M_APG_stable',
- 'gaussian_1M_APG',
+ # 'gaussian_2M_MAPG',
+ # # 'gaussian_2M_MAPG_station_0','gaussian_2M_MAPG_station_1',
+ # 'gaussian_2M_FPG',
+ # # 'gaussian_2M_FPG_station_0','gaussian_2M_FPG_station_1',
+ # 'gaussian_2M_APG',
+ # # 'gaussian_2M_APG_station_0','gaussian_2M_APG_station_1',
+ # 'gaussian_2M_SEP',
+ # 'gaussian_1M_FPG_concave',
+ # 'gaussian_1M_FPG_convex',
+ # 'gaussian_1M_APG_stable',
+ # 'gaussian_1M_APG',
  # 'gaussian_2M_SEP_station_0','gaussian_2M_SEP_station_1',
  'bub_A',
  # 'bub_A_station_0','bub_A_station_1','bub_A_station_2','bub_A_station_3','bub_A_station_4','bub_A_station_5',
@@ -117,12 +118,12 @@ test_datasets = [
 ]
 
 # NOTE: The following code is used to add the station datasets to the test_datasets list
-for dataset in test_datasets:
-    if dataset in STATION:
-        dataset_index = test_datasets.index(dataset)
-        len_station = len(STATION[dataset])
-        for i in range(len_station):
-            test_datasets.insert(dataset_index+i+1, dataset + '_station_' + str(i))
+# for dataset in test_datasets:
+#     if dataset in STATION:
+#         dataset_index = test_datasets.index(dataset)
+#         len_station = len(STATION[dataset])
+#         for i in range(len_station):
+#             test_datasets.insert(dataset_index+i+1, dataset + '_station_' + str(i))
 
 data = {}
 data_abs = {}

@@ -17,6 +17,7 @@ import Levenshtein # This is to find similar dataset names
 model_path = sys.argv[1] if len(sys.argv) > 1 else None
 save_mode = int(sys.argv[2]) if len(sys.argv) > 2 else False
 masked_threshold  = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0002
+save_results = int(sys.argv[4]) if len(sys.argv) > 4 else 1
 #
 
 def get_closest_matches(invalid_key, valid_keys, num_suggestions=10):
@@ -49,7 +50,8 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
         mask_threshold=masked_threshold,
         save_path=save_path,
         LogTransform=wall_model.config.get('training', {}).get('LogTransform', False),
-        near_wall=wall_model.config.get('data', {}).get('near_wall_threshold', -1.0)
+        near_wall=wall_model.config.get('data', {}).get('near_wall_threshold', -1.0),
+        SaveResults=save_results
     )
 
     return results, wall_model
@@ -64,11 +66,25 @@ test_dataset = None
 wall_model   = None
 
 while True:
-    test_dataset = input(f"Enter the dataset to test (P for printing all): ")
+    test_dataset = input(f"Enter the dataset to test (P for printing all; R for regression plot): ")
     
     if test_dataset == 'P':
 # Call the function to print the dataset tree
         print_dataset_tree(TURB_CASES_TREE)
+        continue
+    elif test_dataset == 'R':
+        # Do regression plot without saving the plots
+        if wall_model is None:
+            results, wall_model = load_and_test_model(model_path, 'SYN')
+        wall_model.load_data()
+        wall_model.test(plot=True, plot_frequency=True)
+        continue
+    elif test_dataset == 'Rs':
+        # Do regression plot but save the plots
+        if wall_model is None:
+            results, wall_model = load_and_test_model(model_path, 'SYN')
+        wall_model.load_data()
+        wall_model.test(plot=False,plot_frequency=True, save_path="./paper_plots/regression/")
         continue
     elif test_dataset == 'Q':
         print("Exiting the program.")

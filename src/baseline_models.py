@@ -8,8 +8,8 @@ from typing import Optional, Tuple, Dict, Any
 # Constants for wall models
 KAPPA = 0.41
 B = 5.2
-YSTAR = 11.0  # Transition y+ value between viscous sublayer and log region
-A = 0.5  # Coefficient for quadratic term in near-wall model
+YSTAR = 23.0  # Transition y+ value between viscous sublayer and log region
+A = 0.5*(1.0/(KAPPA*YSTAR) - 1.0)/YSTAR;
 
 def log_law(utau, y, nu, u):
     """

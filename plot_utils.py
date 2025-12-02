@@ -8,6 +8,9 @@ plt.rcParams.update({
     "font.size":32,
     'axes.labelsize': 'medium',
     'axes.titlesize':'medium',
+    # Use tex for rendering text
+    'text.usetex': True
+    
 })          # specify font size here
 
 # Define some colors for plotting Set color cycle: traditional Chinese color https://boxingp.github.io/traditional-chinese-colors/
