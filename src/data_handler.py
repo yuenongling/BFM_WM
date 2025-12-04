@@ -42,7 +42,7 @@ class WallModelDataHandler:
     Handles data loading, preprocessing, and partitioning for wall models
     """
     
-    def __init__(self, config: Dict, UPY_MAX_FIX: float = 0.15):
+    def __init__(self, config: Dict, UPY_MAX_FIX: float = 0.25):
         """Initialize with configuration"""
         self.config = config
         self.device = torch.device(f"cuda:{config.get('general', {}).get('GpuNum', -1)}"
