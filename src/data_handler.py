@@ -106,47 +106,12 @@ class WallModelDataHandler:
                 # If value is 1, add the key to datasets
                 datasets.append(key)
 
-        # # Check for channel flow data
-        # if data_config.get('CH', 0) == 1:
-        #     datasets.append('CH')
-        #
-        # # Check for synthetic data
-        # if data_config.get('SYN', 0) == 1:
-        #     datasets.append('SYN')
-        #
-        # # Check for Gaussian data
-        # if data_config.get('gaussian_2M', 0) == 1:
-        #     datasets.append('gaussian_2M')
-        #
         # # Check for TBL data with specific angles
         tbl_angles = data_config.get('TBL', [])
         if isinstance(tbl_angles, list) and tbl_angles:
             for angle in tbl_angles:
                 datasets.append(f'TBL_{angle}')
-        #
-        # # Check for bubble data
-        # if data_config.get('BUB', 0) == 1:
-        #     for case in TURB_CASES:
-        #         if 'bub_' in case:
-        #             datasets.append(case)
-        #
-        # # Check for APG data
-        # if data_config.get('APG', 0) == 1:
-        #     for case in TURB_CASES:
-        #         if 'apg_' in case:
-        #             datasets.append(case)
-        #
-        # # Check for airfoil data
-        # if data_config.get('AIRFOIL', 0) == 1:
-        #     for case in TURB_CASES:
-        #         if 'naca_' in case or 'aairfoil_' in case:
-        #             datasets.append(case)
-        #
-        # # If no datasets specified, use all
-        # if not datasets:
-        #     print("Warning: No specific datasets configured, using all available")
-        #     datasets = TURB_CASES
-        
+
         # Load each dataset
         all_inputs = []
         all_outputs = []
