@@ -254,7 +254,7 @@ class WallModelDataHandler:
                     if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
                         y_vals = unnormalized_for_filter['y'].values
                         delta_vals = flow_type_for_processing['delta'].astype(float).values
-                        mask = y_vals <= 0.15 * delta_vals
+                        mask = y_vals <= upy_max * delta_vals
                         print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                         all_data_inputs_df = all_data_inputs_df[mask]
                         outputs_for_processing = outputs_for_processing[mask]
