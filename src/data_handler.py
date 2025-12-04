@@ -213,13 +213,18 @@ class WallModelDataHandler:
                 # --- END NEW SECTION ---
 
                 # --- Filtering (using DataFrames) ---
-                upy_max = data_config.get('upy', 0.15)
-                if upy_max < 1.0:
-                    print(f"Filtering {case} with upy_max={upy_max}...")
+                ymax = data_config.get('upy', 0.15)
+                ymin = data_config.get('downy', 0.005)
+                if ymax < 1.0:
+                    print(f"Filtering {case} with upy_max={ymax}...")
                     if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
                         y_vals = unnormalized_for_filter['y'].values
                         delta_vals = flow_type_for_processing['delta'].astype(float).values
-                        mask = y_vals <= upy_max * delta_vals
+
+                        mask1 = y_vals <= ymax * delta_vals
+                        mask2 = y_vals >= ymin * delta_vals
+                        mask = mask1 & mask2
+
                         print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                         all_data_inputs_df = all_data_inputs_df[mask]
                         outputs_for_processing = outputs_for_processing[mask]
@@ -265,7 +270,7 @@ class WallModelDataHandler:
                 else:
                     # This branch excludes points very close to the wall. Set near_wall == 0 to disable this filtering.
                     # If near_wall <= 0, exclude points with low u1_y_over_nu values (e.g., negative or zero)
-                    mask1 = inputs_selected_df['u1_y_over_nu'] > np.abs(near_wall)
+                    mask1 = np.abs(inputs_selected_df['u1_y_over_nu']) > np.abs(near_wall)
                     mask  = mask1
 
                     outputs_for_processing = outputs_for_processing[mask]

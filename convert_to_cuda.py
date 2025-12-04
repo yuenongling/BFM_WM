@@ -97,27 +97,28 @@ def write_mlp_params_split(
 
     # --- Extract Layers ---
     linear_layers = [m for m in model.modules() if isinstance(m, nn.Linear)]
-    if len(linear_layers) != 5:
-        raise ValueError(f"Expected 5 Linear layers, found {len(linear_layers)}. "
-                         "Model structure might be different than expected (3->40->40->40->40->1).")
+    # if len(linear_layers) != 5:
+    #     raise ValueError(f"Expected 5 Linear layers, found {len(linear_layers)}. "
+    #                      "Model structure might be different than expected (3->40->40->40->40->1).")
 
     l_input = linear_layers[0]
     l_hidden1 = linear_layers[1]
     l_hidden2 = linear_layers[2]
     l_hidden3 = linear_layers[3]
-    l_output = linear_layers[4]
+    l_hidden4 = linear_layers[4]
+    l_output = linear_layers[5]
 
     # --- Verify Layer Dimensions (same as before) ---
-    if l_input.in_features != 3 or l_input.out_features != 40:
-        raise ValueError(f"Input layer shape mismatch: expected (3, 40), got ({l_input.in_features}, {l_input.out_features})")
-    # ... (add checks for hidden1, hidden2, hidden3, output as before if desired) ...
-    if l_output.in_features != 40 or l_output.out_features != 1:
-         raise ValueError(f"Output layer shape mismatch: expected (40, 1), got ({l_output.in_features}, {l_output.out_features})")
+    # if l_input.in_features != 3 or l_input.out_features != 40:
+    #     raise ValueError(f"Input layer shape mismatch: expected (3, 40), got ({l_input.in_features}, {l_input.out_features})")
+    # # ... (add checks for hidden1, hidden2, hidden3, output as before if desired) ...
+    # if l_output.in_features != 40 or l_output.out_features != 1:
+    #      raise ValueError(f"Output layer shape mismatch: expected (40, 1), got ({l_output.in_features}, {l_output.out_features})")
 
 
     # --- Network Parameters ---
-    Nneurons_wall = 40
-    Nlayers_wall = 5  # Total number of weight matrices/layers
+    Nneurons_wall = 20
+    Nlayers_wall = 6  # Total number of weight matrices/layers
     act_fn_wall = 0   # 0 for ReLU (ensure kernel matches this convention)
 
     # --- Calculate Correct Sizes ---
@@ -139,11 +140,13 @@ def write_mlp_params_split(
         hidden2_b = l_hidden2.bias.detach().to(DTYPE).cpu().numpy()
         hidden3_w = l_hidden3.weight.detach().to(DTYPE).cpu().numpy().flatten()
         hidden3_b = l_hidden3.bias.detach().to(DTYPE).cpu().numpy()
+        hidden4_w = l_hidden4.weight.detach().to(DTYPE).cpu().numpy().flatten()
+        hidden4_b = l_hidden4.bias.detach().to(DTYPE).cpu().numpy()
         output_w = l_output.weight.detach().to(DTYPE).cpu().numpy().flatten()
         output_b = l_output.bias.detach().to(DTYPE).cpu().numpy()
 
-        hidden_layers_wall_data = np.concatenate([hidden1_w, hidden2_w, hidden3_w])
-        bias_wall_data = np.concatenate([input_b, hidden1_b, hidden2_b, hidden3_b, output_b])
+        hidden_layers_wall_data = np.concatenate([hidden1_w, hidden2_w, hidden3_w, hidden4_w])
+        bias_wall_data = np.concatenate([input_b, hidden1_b, hidden2_b, hidden3_b, hidden4_b, output_b])
         output_layer_wall_data = np.concatenate([output_w, output_b])
 
     # --- Prepare Standardization Parameters ---
@@ -252,7 +255,7 @@ if __name__ == "__main__":
 
     # Specify the path to your trained model checkpoint
     # <<< --- USER INPUT NEEDED --- >>>
-    checkpoint_file = "./models/NN_wm_CH1_G0_S1_TBL1_tn543759_vn135940_fds0_lds0_customw1_inputs2_final_ep8000_tl0.03098575_vl0.03911465.pth" # IMPORTANT: Update this path
+    checkpoint_file = "./models/NN_wm_CH1_G0_S1_TBL1_tn1000648_vn250162_fds0_lds0_customw1_inputs2_ep328850_tl0.09010563_vl0.12069649.pth" # IMPORTANT: Update this path
 
     # 3. Define your standardization parameters (replace with actual values)
     # <<< --- USER INPUT NEEDED --- >>>
@@ -262,8 +265,8 @@ if __name__ == "__main__":
     example_output_offset = 0.0                # Placeholder - Use actual offset
 
     # 4. Specify the output filenames
-    output_header_file = "mlp_params.hpp"
-    output_source_file = "mlp_params.cu" # Or .cpp if not directly compiled by nvcc
+    output_header_file = "mlp_params_1130.hpp"
+    output_source_file = "mlp_params_1130.cu" # Or .cpp if not directly compiled by nvcc
 
     # 5. Run the export function
     try:
