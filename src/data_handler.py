@@ -42,7 +42,7 @@ class WallModelDataHandler:
     Handles data loading, preprocessing, and partitioning for wall models
     """
     
-    def __init__(self, config: Dict, UPY_MAX_FIX: float = 1):
+    def __init__(self, config: Dict, YMAX_FIX: float = 1, YMIN_FIX: float = 0):
         """Initialize with configuration"""
         self.config = config
         self.device = torch.device(f"cuda:{config.get('general', {}).get('GpuNum', -1)}"
@@ -67,7 +67,10 @@ class WallModelDataHandler:
         self.output_valid = None
 
         # NOTE: YN -> Fix upy_max for consistent plotting
-        self.UPY_MAX_FIX = UPY_MAX_FIX
+        self.YMAX_FIX = YMAX_FIX
+        self.YMIN_FIX = YMIN_FIX
+
+        assert self.YMAX_FIX >= self.YMIN_FIX, "YMAX_FIX must be greater than or equal to YMIN_FIX"
         
     def read_data(self, data_sources: Optional[Dict] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -449,20 +452,28 @@ class WallModelDataHandler:
         flow_type = pd.read_hdf(file_path, key='flow_type').values
         
         # Apply optional filtering based on config
-        upy_max = config.get('data', {}).get('upy', 1.0)  # Upper y value for input
+        ymax = config.get('data', {}).get('upy', 0.15)  # Upper y value for input
+        ymin = config.get('data', {}).get('downy', 0.005)  # Upper y value for input
         
         # Filter based on upy if needed
-        if upy_max < 1.0:
+        if ymax < 1.0:
             # First column of unnormalized_inputs contains y values relative to delta
             y = unnormalized_inputs[:, 0]
             delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
             
             # Filter out points where y exceeds upy_max * delta
             # NOTE: YN -> If UPY_MAX_FIX is set and less than 1.0, use it to apply consistent filtering
-            if self.UPY_MAX_FIX < 1.0:
-                mask = y <= self.UPY_MAX_FIX * delta
+            if self.YMAX_FIX < 1.0:
+                mask1 = y <= self.YMAX_FIX * delta
             else:
-                mask = y <= upy_max * delta
+                mask1 = y <= ymax * delta
+
+            if self.YMIN_FIX > 0.0:
+                mask2 = y >= self.YMIN_FIX * delta
+            else:
+                mask2 = y >= ymin * delta
+
+            mask = mask1 & mask2
             
             # Apply mask to all data arrays
             inputs_df = inputs_df[mask]
