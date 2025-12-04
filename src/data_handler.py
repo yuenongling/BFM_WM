@@ -228,10 +228,11 @@ class WallModelDataHandler:
                         mask2 = y_vals >= ymin * delta_vals
                         mask = mask1 & mask2
 
-                        print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                         all_data_inputs_df = all_data_inputs_df[mask]
                         outputs_for_processing = outputs_for_processing[mask]
                         flow_type_for_processing = flow_type_for_processing[mask]
+
+                        print(f"  Filtered dataset {case}: {len(mask)} -> {all_data_inputs_df.shape[0]} points")
                     else:
                         print(f"  Warning: Cannot filter by 'upy'. Missing 'y' in unnormalized or 'delta' in flow_type.")
 
@@ -279,10 +280,6 @@ class WallModelDataHandler:
                     outputs_for_processing = outputs_for_processing[mask]
                     flow_type_for_processing = flow_type_for_processing[mask]
                     inputs_selected_df = inputs_selected_df[mask]
-
-                    # # Use log scale for near wall filtering
-                    # for col in selected_columns:
-                    #     inputs_selected_df[col] = np.sign(inputs_selected_df[col]) * np.log1p(np.abs(inputs_selected_df[col]))
 
                     print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
 
