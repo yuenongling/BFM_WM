@@ -276,9 +276,10 @@ class WallModelDataHandler:
                     continue
 
                 # --- Secondary filtering (if needed) ---
-                near_wall = data_config.get('near_wall_threshold', -1.0)
+                near_wall = data_config.get('near_wall_threshold', 0.0)
                 # It seems that we only need to filter based on u1_y_over_nu
                 if near_wall > 0.0:
+                    # This branch only trains points close to the wall
                     if 'u1_y_over_nu' not in inputs_selected_df.columns:
                         raise ValueError(f"Column 'u1_y_over_nu' required for near_wall filtering not found in dataset {case}.")
                     else:
@@ -297,10 +298,9 @@ class WallModelDataHandler:
 
                         print(f"  Applied near_wall filtering at {near_wall}: {len(mask)} -> {len(inputs_selected_df)} points")
                 else:
-                    print("No near_wall target filtering applied.")
-                    print("But we need to exclude some near-wall points that are not used for training.")
-                    # Only concern data that has low u1_y_over_nu and u2_y_over_nu values
-                    mask1 = inputs_selected_df['u1_y_over_nu'] > 1000
+                    # This branch excludes points very close to the wall. Set near_wall == 0 to disable this filtering.
+                    # If near_wall <= 0, exclude points with low u1_y_over_nu values (e.g., negative or zero)
+                    mask1 = inputs_selected_df['u1_y_over_nu'] > np.abs(near_wall)
                     mask  = mask1
 
                     outputs_for_processing = outputs_for_processing[mask]
