@@ -168,7 +168,7 @@ class WallModelDataHandler:
                     print(f"Warning: HDF5 file not found for dataset {case}. Expected path: {h5_file_path}. Skipping dataset.")
                     continue # Skip this dataset if HDF5 file doesn't exist
 
-                # --- <<< NEW: STATION X-LOCATION FILTERING (using DataFrames) >>> ---
+                # --- STATION X-LOCATION FILTERING (using DataFrames) ---
                 if is_station_data:
                     print(f"Applying station filtering for station {station_num} (target x={station_x})...")
                     # *** IMPORTANT: Adjust 'x' if the column name for x-coordinates is different ***
@@ -213,13 +213,18 @@ class WallModelDataHandler:
 
                             print(f"  Filtered for station {station_num}: {num_before} -> {num_after} points at x ≈ {closest_x_in_data:.6f}")
 
-                # --- END NEW SECTION ---
-
                 # --- Filtering (using DataFrames) ---
                 ymax = data_config.get('upy', 0.15)
                 ymin = data_config.get('downy', 0.005)
                 if ymax < 1.0:
                     print(f"Filtering {case} with upy_max={ymax}...")
+
+                    # NOTE: Add stronger check for columns existence
+                    if 'y' not in unnormalized_for_filter.columns:
+                        raise ValueError(f"Column 'y' required for upy filtering not found in unnormalized inputs for dataset {case}.")
+                    if 'delta' not in flow_type_for_processing.columns:
+                        raise ValueError(f"Column 'delta' required for upy filtering not found in flow_type for dataset {case}.")
+
                     if 'y' in unnormalized_for_filter.columns and 'delta' in flow_type_for_processing.columns:
                         y_vals = unnormalized_for_filter['y'].values
                         delta_vals = flow_type_for_processing['delta'].astype(float).values
