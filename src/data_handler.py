@@ -457,7 +457,7 @@ class WallModelDataHandler:
             # First column of unnormalized_inputs contains y values relative to delta
             y = unnormalized_inputs[:, 0]
             delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
-            
+
             # Filter out points where y exceeds upy_max * delta
             # NOTE: YN -> If UPY_MAX_FIX is set and less than 1.0, use it to apply consistent filtering
             if self.YMAX_FIX < 1.0:
