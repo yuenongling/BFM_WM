@@ -14,11 +14,36 @@ from wall_model_cases import TURB_CASES, TURB_CASES_TREE, print_dataset_tree
 import Levenshtein # This is to find similar dataset names
 
 # --- Read in command line arguments ---
-model_path = sys.argv[1] if len(sys.argv) > 1 else None
-save_mode = int(sys.argv[2]) if len(sys.argv) > 2 else False
-masked_threshold  = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0002
-save_results = int(sys.argv[4]) if len(sys.argv) > 4 else 1
-#
+# Using argparse here for flexibility and future expansion
+import argparse
+parser = argparse.ArgumentParser(
+                    prog='BFM Tester',
+                    description='Test wall model on different datasets and compare results.',
+                    epilog='Text at the bottom of help')
+
+parser.add_argument('--model_path', type=str, nargs='?', default=None, 
+             help='Path to the wall model file.')
+parser.add_argument('--save_mode', type=int, nargs='?', default=0,
+             help='Set to 1 to save plots, 0 otherwise.')
+parser.add_argument('--mask_threshold', type=float, nargs='?', default=None,
+             help='Threshold for splitting low values in the results.')
+parser.add_argument('--mask_threshold_Re', type=float, nargs='?', default=None,
+             help='Threshold for splitting low Re values in the results.')
+parser.add_argument('--save_results', type=int, nargs='?', default=1,
+             help='Set to 1 to save results, 0 otherwise.')
+
+args = parser.parse_args()
+model_path = args.model_path
+save_mode = bool(args.save_mode)
+mask_threshold = args.mask_threshold
+mask_threshold_Re = args.mask_threshold_Re
+save_results = bool(args.save_results)
+
+if mask_threshold_Re is not None and mask_threshold is not None:
+    print("Warning: as mask_threshold_Re is provided, mask_threshold will be ignored.")
+    mask_threshold = None
+
+##########################################################
 
 def get_closest_matches(invalid_key, valid_keys, num_suggestions=10):
     """
@@ -47,7 +72,8 @@ def load_and_test_model(model_path, test_dataset=None, wall_model=None):
     results = wall_model.test_external_dataset(
         dataset_key=test_dataset,
         tauw=True,
-        mask_threshold=masked_threshold,
+        mask_threshold=mask_threshold,
+        mask_threshold_Re=mask_threshold_Re,
         save_path=save_path,
         LogTransform=wall_model.config.get('training', {}).get('LogTransform', False),
         near_wall=wall_model.config.get('data', {}).get('near_wall_threshold', -1.0),

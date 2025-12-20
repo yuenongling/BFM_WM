@@ -313,7 +313,9 @@ class WallModelVisualization:
                                  weighted_utau: bool = False,
                                  tauw: bool = False,
                                  save_path: Optional[str] = None,
-                                 mask_threshold: Optional[float] = None) -> Tuple[Optional[float], float, float, float, float]:
+                                 mask_threshold: Optional[float] = None,
+                                 mask_threshold_Re: Optional[float] = None
+                                 ) -> Tuple[Optional[float], float, float, float, float]:
         """
         Plot scatter plot colored by error
         
@@ -349,9 +351,17 @@ class WallModelVisualization:
         output_true_tauw = output_true ** 2
 
         # Apply masking if requested
-        if mask_threshold is not None:
-            kept_idx = np.where(np.abs(output_true_tauw) > mask_threshold)
-            other_idx = np.where(np.abs(output_true_tauw) <= mask_threshold)
+        if mask_threshold is not None or mask_threshold_Re is not None:
+
+            if mask_threshold is not None:
+                kept_idx = np.where(np.abs(output_true_tauw) > mask_threshold)
+                other_idx = np.where(np.abs(output_true_tauw) <= mask_threshold)
+            else:
+                # Find corresponding output * delta / nu
+                delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
+                local_Re = delta * utau / nu
+                kept_idx = np.where(local_Re > mask_threshold_Re)
+                other_idx = np.where(local_Re <= mask_threshold_Re)
             
             # Plot separation region if needed
             if len(other_idx[0]) > 0:
@@ -513,7 +523,9 @@ class WallModelVisualization:
                                         flow_type: Optional[np.ndarray] = None,
                                         save_path: Optional[str] = None,
                                         mask_threshold: Optional[float] = None,
-                                        max_model_err: Optional[float] = None) -> Tuple[float, float, float, float]:
+                                        mask_threshold_Re: Optional[float] = None,
+                                        max_model_err: Optional[float] = None
+                                        ) -> Tuple[float, float, float, float]:
         """
         Plot scatter plot colored by error for log law baseline
         
@@ -545,9 +557,19 @@ class WallModelVisualization:
         output_true_tauw = (utau)**2
         
         # Apply masking if requested
-        if mask_threshold is not None:
-            kept_idx = np.where(np.abs(output_true_tauw) > mask_threshold)
-            other_idx = np.where(np.abs(output_true_tauw) <= mask_threshold)
+        if mask_threshold is not None or mask_threshold_Re is not None:
+
+            if mask_threshold is not None:
+                kept_idx = np.where(np.abs(output_true_tauw) > mask_threshold)
+                other_idx = np.where(np.abs(output_true_tauw) <= mask_threshold)
+            else:
+                # Find corresponding output * delta / nu
+                # Calculate tauw predictions
+                nu = unnormalized_inputs[:,2]
+                delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
+                local_Re = delta * utau / nu
+                kept_idx = np.where(local_Re > mask_threshold_Re)
+                other_idx = np.where(local_Re <= mask_threshold_Re)
             
             # Plot separation region if needed
             if len(other_idx[0]) > 0:

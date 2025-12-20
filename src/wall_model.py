@@ -436,6 +436,7 @@ class WallModel(WallModelBase):
                             log_scale: bool = False,
                             tauw: bool = True,
                             mask_threshold: Optional[float] = None,
+                            mask_threshold_Re: Optional[float] = None,
                             fixed_height: Optional[float] = None,
                             abs_inputs: bool = False,
                             weighted_utau: bool = False,
@@ -455,6 +456,7 @@ class WallModel(WallModelBase):
             log_scale: Whether to use log scale for plots
             tauw: Whether to plot wall shear stress
             mask_threshold: Optional threshold for masking near-zero values
+            mask_threshold_Re: Optional threshold based on Reynolds number [override mask_threshold if provided]
             fixed_height: Optional fixed height ratio to test at
             abs_inputs: Whether to use absolute values of inputs
             weighted_utau: Whether to weight results by friction velocity
@@ -619,6 +621,8 @@ class WallModel(WallModelBase):
             return
 
         elif purpose == 0:
+
+            # Purpose here is to plot and compare the error predictions
         
             # Determine bin location for this dataset
             bin_loc = self.dataset_constants['BIN_LOCATIONS'].get(
@@ -720,7 +724,8 @@ class WallModel(WallModelBase):
                 weighted_utau=weighted_utau,
                 tauw=tauw,
                 save_path=save_path,
-                mask_threshold=mask_threshold
+                mask_threshold=mask_threshold,
+                mask_threshold_Re=mask_threshold_Re,
             )
             
             # Store metrics
@@ -757,6 +762,7 @@ class WallModel(WallModelBase):
                     flow_type=flow_type,
                     save_path=save_path,
                     mask_threshold=mask_threshold,
+                    mask_threshold_Re=mask_threshold_Re,
                     max_model_err=max_err
                 )
                 
