@@ -359,7 +359,7 @@ class WallModelVisualization:
             else:
                 # Find corresponding output * delta / nu
                 delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
-                local_Re = delta * utau / nu
+                local_Re = delta * np.abs(utau) / nu
                 kept_idx = np.where(local_Re > mask_threshold_Re)
                 other_idx = np.where(local_Re <= mask_threshold_Re)
             
@@ -567,7 +567,7 @@ class WallModelVisualization:
                 # Calculate tauw predictions
                 nu = unnormalized_inputs[:,2]
                 delta = np.array([float(flow_type[i, 3]) for i in range(len(flow_type))])
-                local_Re = delta * utau / nu
+                local_Re = delta * np.abs(utau) / nu
                 kept_idx = np.where(local_Re > mask_threshold_Re)
                 other_idx = np.where(local_Re <= mask_threshold_Re)
             
