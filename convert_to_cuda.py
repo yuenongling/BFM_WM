@@ -255,7 +255,7 @@ if __name__ == "__main__":
 
     # Specify the path to your trained model checkpoint
     # <<< --- USER INPUT NEEDED --- >>>
-    checkpoint_file = "./models/NN_wm_CH1_G0_S1_TBL1_tn1000648_vn250162_fds0_lds0_customw1_inputs2_ep328850_tl0.09010563_vl0.12069649.pth" # IMPORTANT: Update this path
+    checkpoint_file = "./models/cleaned_up_20251208_ymax_0_15_ymin_0_0025.pth" # IMPORTANT: Update this path
 
     # 3. Define your standardization parameters (replace with actual values)
     # <<< --- USER INPUT NEEDED --- >>>
@@ -265,8 +265,8 @@ if __name__ == "__main__":
     example_output_offset = 0.0                # Placeholder - Use actual offset
 
     # 4. Specify the output filenames
-    output_header_file = "mlp_params_1130.hpp"
-    output_source_file = "mlp_params_1130.cu" # Or .cpp if not directly compiled by nvcc
+    output_header_file = "mlp_params_1208.hpp"
+    output_source_file = "mlp_params_1208.cu" # Or .cpp if not directly compiled by nvcc
 
     # 5. Run the export function
     try:

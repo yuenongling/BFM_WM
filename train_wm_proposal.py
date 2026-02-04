@@ -12,7 +12,7 @@ if gpu_num >= 0 and torch.cuda.is_available():
 else:
     raise "device is incorrect"
 
-
+# Restore from a checkpoint if provided
 checkpoint = sys.argv[2] if len(sys.argv) > 2 else None
 if checkpoint:
     # NOTE: Here for continual training, we assume that we are working on a new dataset using EWC
@@ -24,7 +24,9 @@ else:
     # Training from scratch
     training_instance = WallModel(config)
 
+# Load and train
 training_instance.load_data()
 training_instance.train()
 
+# Save testing results
 r2_train, r2_valid = training_instance.test(save_path='./results')
