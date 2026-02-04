@@ -141,7 +141,7 @@ for test_dataset in test_datasets:
     results = wall_model.test_external_dataset(
         tauw=True,
         dataset_key=test_dataset,
-        mask_threshold=2e-4,
+        mask_threshold_Re=5,
         save_path='./dummy/'
     )
 
