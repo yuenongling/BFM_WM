@@ -24,7 +24,10 @@ def log_law(utau, y, nu, u):
     Returns:
         Residual of the log law equation
     """
-    eq = u / utau - B - 1 / KAPPA * np.log(y * utau / nu)
+    arg = y * utau / nu
+    if utau <= 0 or arg <= 0:
+        return u / 1e-30  # large residual to push solver toward positive utau
+    eq = u / utau - B - 1 / KAPPA * np.log(arg)
     return eq
 
 def near_wall(utau, y, nu, u):
@@ -43,20 +46,22 @@ def near_wall(utau, y, nu, u):
     eq = u / utau - y * utau / nu - A * (y * utau / nu)**2
     return eq
 
-def log_law_solve(y, nu, u, initial=0.001, tol=1e-5):
+def log_law_solve(y, nu, u, initial=None, tol=1e-5):
     """
     Solve for friction velocity using log law or near-wall model
-    
+
     Args:
         y: Wall-normal distance
         nu: Kinematic viscosity
         u: Streamwise velocity
-        initial: Initial guess for friction velocity
+        initial: Initial guess for friction velocity (if None, estimated from u)
         tol: Tolerance for convergence
-    
+
     Returns:
         Solved friction velocity
     """
+    if initial is None:
+        initial = np.sqrt(max(nu * abs(u) / abs(y), 1e-20))
     sol = fsolve(log_law, initial, args=(y, nu, u))
     
     # Check the y in plus units
@@ -86,7 +91,10 @@ def log_law_Re(utau, y, Re, u):
     Returns:
         Residual of the log law equation
     """
-    eq = abs(u) / utau - B - 1 / KAPPA * np.log(abs(y * utau * Re))
+    arg = abs(y * utau * Re)
+    if utau <= 0 or arg <= 0:
+        return abs(u) / 1e-30  # large residual to push solver toward positive utau
+    eq = abs(u) / utau - B - 1 / KAPPA * np.log(arg)
     return eq
 
 def near_wall_Re(utau, y, Re, u):
@@ -105,20 +113,22 @@ def near_wall_Re(utau, y, Re, u):
     eq = abs(u) / utau - y * utau * Re - A * (y * utau * Re)**2
     return eq
 
-def log_law_solve_Re(y, Re, u, initial=0.001, tol=1e-5):
+def log_law_solve_Re(y, Re, u, initial=None, tol=1e-5):
     """
     Solve for friction velocity using Reynolds number formulation
-    
+
     Args:
         y: Normalized wall-normal distance
         Re: Reynolds number
         u: Normalized streamwise velocity
-        initial: Initial guess for friction velocity
+        initial: Initial guess for friction velocity (if None, estimated from u)
         tol: Tolerance for convergence
-    
+
     Returns:
         Solved friction velocity
     """
+    if initial is None:
+        initial = np.sqrt(max(abs(u) / (abs(y) * Re), 1e-20))
     sol = fsolve(log_law_Re, initial, args=(y, Re, u))
     
     # Check the y in plus units
@@ -336,8 +346,8 @@ class EqWallModelPredictor:
                     
                 return eq
             
-            # Initial guess
-            utau_guess = 0.05 * U[i]
+            # Initial guess: viscous estimate tau_w = mu*u/y -> utau = sqrt(nu*u/y)
+            utau_guess = np.sqrt(max(nu[i] * abs(U[i]) / abs(y[i]), 1e-20))
             
             # Solve for u_tau with pressure gradient
             sol = fsolve(eq_with_pressure, utau_guess, args=(y[i], nu[i], U[i], dp_dx[i]))
