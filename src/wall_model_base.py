@@ -105,9 +105,9 @@ class WallModelBase:
         if device is not None:
             instance.device = torch.device(device)
         
-        # Set preprocessing parameters
-        instance.input_mean = checkpoint['input_mean']
-        instance.input_std = checkpoint['input_std']
+        # # Set preprocessing parameters
+        # instance.input_mean = checkpoint['input_mean']
+        # instance.input_std = checkpoint['input_std']
         
         # Create and load model
         instance._create_model()

@@ -392,18 +392,18 @@ def write_mlp_params_split(
 # ================== Command Line Interface ==================
 if __name__ == "__main__":
     import argparse
-    
+
     def wall_model_loader(checkpoint_path):
         """Custom loader for WallModel checkpoints."""
         from src.wall_model import WallModel
         wall_model = WallModel.load_compact(checkpoint_path, device="cpu")
         return wall_model.model
-    
+
     parser = argparse.ArgumentParser(
         description="Export PyTorch MLP weights to C++ header and source files.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    
+
     # Required arguments
     parser.add_argument(
         "checkpoint",
@@ -415,7 +415,7 @@ if __name__ == "__main__":
         type=str,
         help="Output base filename (without extension). Will generate <output>.hpp and <output>.cu"
     )
-    
+
     # Optional arguments
     parser.add_argument(
         "--input-gains",
@@ -473,9 +473,9 @@ if __name__ == "__main__":
         default=1e-10,
         help="Values with |value| < threshold are set to 0 (avoids overflow/underflow)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Generate output filenames
     output_base = args.output
     # Remove extension if user provided one
@@ -483,15 +483,15 @@ if __name__ == "__main__":
         if output_base.endswith(ext):
             output_base = output_base[:-len(ext)]
             break
-    
+
     header_file = output_base + args.header_ext
     source_file = output_base + args.source_ext
-    
+
     # Check checkpoint exists
     if not os.path.exists(args.checkpoint):
         print(f"Error: Checkpoint file not found: {args.checkpoint}")
         exit(1)
-    
+
     # First, load model to infer input size for default gains/offsets
     print(f"Loading model to infer structure...")
     try:
